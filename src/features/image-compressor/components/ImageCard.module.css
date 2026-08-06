@@ -1,0 +1,246 @@
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 统一图片展示区：固定 4:3，大图裁切铺满，小图原尺寸居中 */
+.thumbWrap {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #0b0d11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbSmall {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.info {
+  padding: 10px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.format {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+.formatPng {
+  background: rgba(62, 207, 110, 0.15);
+  color: var(--success);
+}
+
+.formatJpeg {
+  background: rgba(230, 162, 60, 0.15);
+  color: var(--warning);
+}
+
+.formatWebp {
+  background: rgba(79, 140, 255, 0.15);
+  color: var(--accent);
+}
+
+.formatGif,
+.formatBmp {
+  background: rgba(154, 163, 178, 0.15);
+  color: var(--text-secondary);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sizeCompressed {
+  color: var(--accent);
+}
+
+.saved {
+  color: var(--success);
+}
+
+.grown {
+  color: var(--danger);
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.pending {
+  background: rgba(154, 163, 178, 0.15);
+  color: var(--text-secondary);
+}
+
+.processing {
+  background: rgba(79, 140, 255, 0.15);
+  color: var(--accent);
+}
+
+.done {
+  background: rgba(62, 207, 110, 0.15);
+  color: var(--success);
+}
+
+.error {
+  background: rgba(255, 107, 107, 0.15);
+  color: var(--danger);
+}
+
+.quality {
+  color: var(--text-secondary);
+}
+
+.errorText {
+  color: var(--danger);
+}
+
+.note {
+  font-size: 11px;
+  color: var(--warning);
+}
+
+.miniBar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+.miniFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.15s;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.action {
+  flex: 1;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 6px 0;
+  font-size: 12px;
+  transition: border-color 0.15s;
+}
+
+.action:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.remove {
+  flex: 0 0 34px;
+  color: var(--text-secondary);
+}
+
+.remove:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+@media (max-width: 767px) {
+  .info {
+    padding: 8px 10px 6px;
+    gap: 3px;
+  }
+
+  .name {
+    font-size: 12px;
+  }
+
+  .format {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+
+  .row,
+  .statusRow {
+    font-size: 11px;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  .actions {
+    gap: 6px;
+    padding: 0 10px 10px;
+  }
+
+  .action {
+    font-size: 11px;
+    padding: 5px 0;
+  }
+
+  .remove {
+    flex-basis: 30px;
+  }
+}

@@ -1,0 +1,33 @@
+.dropzone {
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 34px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg-panel);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.dropzone:hover,
+.dragging {
+  border-color: var(--accent);
+  background: rgba(79, 140, 255, 0.08);
+}
+
+.icon {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.title {
+  margin-top: 10px;
+  font-size: 15px;
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
