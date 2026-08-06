@@ -1,6 +1,6 @@
 export const messages = {
   app: {
-    brand: '🧰 开发工具包',
+    brand: '🧰 工具箱',
     navImage: '图片压缩',
     navJson: 'JSON 工具',
   },
