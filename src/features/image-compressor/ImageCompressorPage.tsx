@@ -22,6 +22,7 @@ import styles from './ImageCompressorPage.module.css';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const CONCURRENCY = 2;
+const MAX_ITEMS = 50;
 
 let idCounter = 0;
 const nextId = () => `img-${++idCounter}`;
@@ -115,13 +116,26 @@ export default function ImageCompressorPage() {
   );
 
   const addFiles = useCallback(async (files: File[]) => {
-    const typeOk = files.filter((f) => ALLOWED_TYPES.includes(f.type));
+    const notices: string[] = [];
+
+    // 数量限制：列表已有数量 + 本次新增不能超过上限
+    const remaining = MAX_ITEMS - itemsRef.current.length;
+    if (remaining <= 0) {
+      setNotice(messages.image.maxItemsReached);
+      return;
+    }
+    let pending = files;
+    if (pending.length > remaining) {
+      notices.push(messages.image.maxItemsIgnored(pending.length - remaining));
+      pending = pending.slice(0, remaining);
+    }
+
+    const typeOk = pending.filter((f) => ALLOWED_TYPES.includes(f.type));
     const sizeOk = typeOk.filter((f) => f.size <= MAX_FILE_SIZE);
 
-    const notices: string[] = [];
-    if (files.some((f) => f.type === 'image/gif')) notices.push(messages.image.gifUnsupported);
-    if (files.some((f) => f.type === 'image/bmp')) notices.push(messages.image.bmpUnsupported);
-    if (typeOk.length !== files.length) notices.push(messages.image.unsupportedIgnored);
+    if (pending.some((f) => f.type === 'image/gif')) notices.push(messages.image.gifUnsupported);
+    if (pending.some((f) => f.type === 'image/bmp')) notices.push(messages.image.bmpUnsupported);
+    if (typeOk.length !== pending.length) notices.push(messages.image.unsupportedIgnored);
     if (sizeOk.length !== typeOk.length) notices.push(messages.image.fileTooLarge);
 
     let valid = sizeOk;
