@@ -163,6 +163,13 @@ export default function ImageCompressorPage() {
     if (notices.length > 0) setNotice(notices.join('；'));
 
     const created: ImageItem[] = [
+      ...valid.map((file) => ({
+        id: nextId(),
+        file,
+        originalUrl: URL.createObjectURL(file),
+        originalSize: file.size,
+        status: 'pending' as const,
+      })),
       ...unsupported.map((file) => ({
         id: nextId(),
         file,
@@ -170,13 +177,6 @@ export default function ImageCompressorPage() {
         originalSize: file.size,
         status: 'unsupported' as const,
         error: messages.image.unsupportedFormat(formatLabel(file)),
-      })),
-      ...valid.map((file) => ({
-        id: nextId(),
-        file,
-        originalUrl: URL.createObjectURL(file),
-        originalSize: file.size,
-        status: 'pending' as const,
       })),
     ];
     if (created.length === 0) return;
