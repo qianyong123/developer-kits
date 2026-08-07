@@ -109,7 +109,10 @@ export default function ImageCard({ item, onRemove, onDownload, onCompare }: Pro
             <span className={styles.errorText}>{item.error}</span>
           ) : (
             result && (
-              <span className={growing ? styles.grown : styles.saved} title={messages.image.ratio}>
+              <span
+                className={`${styles.ratioBadge} ${growing ? styles.ratioGrown : styles.ratioSaved}`}
+                title={messages.image.ratio}
+              >
                 {ratio}
               </span>
             )

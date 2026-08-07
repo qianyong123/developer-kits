@@ -93,11 +93,23 @@
   color: var(--accent);
 }
 
-.saved {
+.ratioBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ratioSaved {
+  background: rgba(62, 207, 110, 0.15);
   color: var(--success);
 }
 
-.grown {
+.ratioGrown {
+  background: rgba(255, 107, 107, 0.15);
   color: var(--danger);
 }
 
