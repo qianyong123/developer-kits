@@ -18,6 +18,13 @@ const RATIO_PRESETS: Array<{ value: number; label: string }> = [
   { value: 50, label: '50%' },
   { value: 20, label: '20%' },
 ];
+/** 输出格式预设 */
+const FORMAT_PRESETS: Array<{ value: FormatOption; label: string }> = [
+  { value: 'original', label: '原格式' },
+  { value: 'webp', label: 'WebP' },
+  { value: 'jpeg', label: 'JPEG' },
+  { value: 'png', label: 'PNG' },
+];
 
 interface Props {
   settings: CompressSettings;
@@ -75,21 +82,23 @@ export default function SettingsPanel({ settings, onChange }: Props) {
 
       <div className={styles.field}>
         <div className={styles.labelRow}>
-          <label className={styles.label} htmlFor="format">
-            {messages.image.format}
-          </label>
+          <span className={styles.label}>{messages.image.format}</span>
           <HelpTip text={messages.image.settingsHelp.format} />
         </div>
-        <select
-          id="format"
-          value={settings.format}
-          onChange={(e) => set({ format: e.target.value as FormatOption })}
-        >
-          <option value="original">{messages.image.formatOriginal}</option>
-          <option value="webp">WebP</option>
-          <option value="jpeg">JPEG</option>
-          <option value="png">PNG</option>
-        </select>
+        <div className={styles.qualityRow}>
+          {FORMAT_PRESETS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={
+                f.value === settings.format ? styles.presetBtnActive : styles.presetBtn
+              }
+              onClick={() => set({ format: f.value })}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className={styles.checkRow}>
