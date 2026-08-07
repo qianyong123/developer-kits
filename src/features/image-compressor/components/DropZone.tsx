@@ -7,16 +7,10 @@ interface Props {
 }
 
 export default function DropZone({ onFiles }: Props) {
-  const galleryRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  const pick = () => galleryRef.current?.click();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) onFiles(Array.from(e.target.files));
-    e.target.value = '';
-  };
+  const pick = () => inputRef.current?.click();
 
   return (
     <div
@@ -39,44 +33,22 @@ export default function DropZone({ onFiles }: Props) {
       }}
     >
       <input
-        ref={galleryRef}
+        ref={inputRef}
         type="file"
         accept="image/*"
         multiple
         hidden
-        onChange={handleChange}
-      />
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        hidden
-        onChange={handleChange}
+        onChange={(e) => {
+          if (e.target.files) onFiles(Array.from(e.target.files));
+          e.target.value = '';
+        }}
       />
       <div className={styles.icon}>🖼️</div>
-      <div className={styles.title}>{messages.image.dropTitle}</div>
-      <div className={styles.hint}>{messages.image.dropHint}</div>
-      <div className={styles.mobileActions}>
-        <button
-          className={styles.mobileBtn}
-          onClick={(e) => {
-            e.stopPropagation();
-            cameraRef.current?.click();
-          }}
-        >
-          📷 拍照
-        </button>
-        <button
-          className={styles.mobileBtn}
-          onClick={(e) => {
-            e.stopPropagation();
-            galleryRef.current?.click();
-          }}
-        >
-          🖼️ 从相册选择
-        </button>
+      <div className={styles.title}>
+        <span className={styles.dragText}>{messages.image.dropTitle}</span>
+        <span className={styles.tapText}>{messages.image.tapTitle}</span>
       </div>
+      <div className={styles.hint}>{messages.image.dropHint}</div>
     </div>
   );
 }

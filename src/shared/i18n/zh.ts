@@ -12,6 +12,7 @@ export const messages = {
     title: '图片压缩',
     subtitle: '批量压缩、格式转换，全部在本地浏览器完成',
     dropTitle: '拖拽图片到这里，或点击选择',
+    tapTitle: '点击选择图片',
     dropHint: '支持 JPG / PNG / WebP，可多选',
     unsupportedIgnored: '已忽略不支持的文件（仅支持 JPG / PNG / WebP）',
     gifUnsupported: '暂不支持 GIF 动图',
