@@ -6,11 +6,67 @@ interface Props {
   onFiles: (files: File[]) => void;
 }
 
+interface PickFileType {
+  description: string;
+  accept: Record<string, string[]>;
+}
+
+interface WindowWithPicker extends Window {
+  showOpenFilePicker?: (options: {
+    multiple?: boolean;
+    types?: PickFileType[];
+    excludeAcceptAllOption?: boolean;
+  }) => Promise<FileSystemFileHandle[]>;
+}
+
+const PICK_TYPES: PickFileType[] = [
+  {
+    description: '图片',
+    accept: {
+      'image/*': [
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.webp',
+        '.gif',
+        '.bmp',
+        '.svg',
+        '.avif',
+        '.ico',
+        '.tiff',
+        '.heic',
+        '.heif',
+      ],
+    },
+  },
+];
+
 export default function DropZone({ onFiles }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  const pick = () => inputRef.current?.click();
+  const pick = async () => {
+    const picker = (window as WindowWithPicker).showOpenFilePicker;
+    if (typeof picker === 'function') {
+      try {
+        const handles = await picker({
+          multiple: true,
+          types: PICK_TYPES,
+          excludeAcceptAllOption: false,
+        });
+        const files = await Promise.all(handles.map((h) => h.getFile()));
+        onFiles(files);
+        return;
+      } catch (err) {
+        // 用户取消（AbortError）或 API 异常时静默回退
+        if ((err as Error).name !== 'AbortError') {
+          console.error('showOpenFilePicker failed', err);
+        }
+        return;
+      }
+    }
+    inputRef.current?.click();
+  };
 
   return (
     <div
