@@ -80,12 +80,6 @@
   color: var(--accent);
 }
 
-.formatGif,
-.formatBmp {
-  background: rgba(154, 163, 178, 0.15);
-  color: var(--text-secondary);
-}
-
 .row {
   display: flex;
   justify-content: space-between;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAnimatedGif, readImageDimensions } from './imageInfo';
+import { readImageDimensions } from './imageInfo';
 
 function makeFile(bytes: number[], name: string, type: string): File {
   return new File([new Uint8Array(bytes)], name, { type });
@@ -73,20 +73,5 @@ describe('readImageDimensions', () => {
 
   it('returns null for unknown formats', async () => {
     expect(await readImageDimensions(makeFile([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 'a.bin', 'text/plain'))).toBeNull();
-  });
-});
-
-describe('isAnimatedGif', () => {
-  it('detects NETSCAPE animation extension', async () => {
-    const bytes = [
-      0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x40, 0x01, 0x80, 0x00,
-      0x21, 0xff, 0x0b, 0x4e, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30,
-    ];
-    expect(await isAnimatedGif(makeFile(bytes, 'anim.gif', 'image/gif'))).toBe(true);
-  });
-
-  it('returns false for static gif', async () => {
-    const bytes = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x40, 0x01, 0x80, 0x00];
-    expect(await isAnimatedGif(makeFile(bytes, 'static.gif', 'image/gif'))).toBe(false);
   });
 });

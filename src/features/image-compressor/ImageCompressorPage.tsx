@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { messages } from '../../shared/i18n/zh';
 import { useDebouncedEffect } from '../../shared/hooks/useDebounced';
 import { downloadUrl } from '../../shared/lib/download';
+import { formatBytes, ratioPercent } from '../../shared/lib/format';
 import CompareDialog from './components/CompareDialog';
 import DropZone from './components/DropZone';
 import ImageCard from './components/ImageCard';
@@ -19,16 +20,15 @@ import {
 import { buildZipBlob } from './lib/zip';
 import styles from './ImageCompressorPage.module.css';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp'];
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const CONCURRENCY = 2;
 
 let idCounter = 0;
 const nextId = () => `img-${++idCounter}`;
 
 const DEFAULT_SETTINGS: CompressSettings = {
-  mode: 'quality',
   quality: 80,
-  targetKB: 200,
+  compressRatio: 100,
   format: 'original',
   keepMetadata: false,
   maxEdge: 4096,
@@ -119,6 +119,8 @@ export default function ImageCompressorPage() {
     const sizeOk = typeOk.filter((f) => f.size <= MAX_FILE_SIZE);
 
     const notices: string[] = [];
+    if (files.some((f) => f.type === 'image/gif')) notices.push(messages.image.gifUnsupported);
+    if (files.some((f) => f.type === 'image/bmp')) notices.push(messages.image.bmpUnsupported);
     if (typeOk.length !== files.length) notices.push(messages.image.unsupportedIgnored);
     if (sizeOk.length !== typeOk.length) notices.push(messages.image.fileTooLarge);
 
@@ -176,8 +178,7 @@ export default function ImageCompressorPage() {
 
   const downloadOne = useCallback((item: ImageItem) => {
     if (!item.result) return;
-    const keepOriginal = item.result.note === 'kept-original';
-    downloadUrl(item.result.url, outputFileName(item.file.name, item.result.format, keepOriginal));
+    downloadUrl(item.result.url, outputFileName(item.file.name, item.result.format));
   }, []);
 
   const downloadAll = useCallback(async () => {
@@ -188,11 +189,7 @@ export default function ImageCompressorPage() {
     try {
       const entries = await Promise.all(
         done.map(async (it) => ({
-          name: outputFileName(
-            it.file.name,
-            it.result!.format,
-            it.result!.note === 'kept-original',
-          ),
+          name: outputFileName(it.file.name, it.result!.format),
           blob: it.result!.blob,
         })),
       );
@@ -207,6 +204,9 @@ export default function ImageCompressorPage() {
 
   const compareItem = items.find((it) => it.id === compareId && it.result) ?? null;
   const resultCount = items.filter((it) => it.result).length;
+  const doneItems = items.filter((it) => it.result);
+  const totalOriginal = doneItems.reduce((sum, it) => sum + it.originalSize, 0);
+  const totalCompressed = doneItems.reduce((sum, it) => sum + (it.result?.size ?? 0), 0);
   const finishedCount = items.filter((it) => it.status === 'done' || it.status === 'error').length;
   const overallPct =
     items.length === 0
@@ -278,6 +278,23 @@ export default function ImageCompressorPage() {
                   <span>
                     {messages.image.processed} {finishedCount} {messages.image.of} {items.length} ·{' '}
                     {overallPct}%
+                  </span>
+                </div>
+              )}
+              {doneItems.length > 0 && (
+                <div className={styles.summary}>
+                  <span>
+                    {messages.image.summary} {doneItems.length} {messages.image.images} ·{' '}
+                    {messages.image.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
+                    {messages.image.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
+                    {messages.image.totalRatio}:{' '}
+                    <b
+                      className={
+                        totalCompressed > totalOriginal ? styles.summaryBad : styles.summaryGood
+                      }
+                    >
+                      {ratioPercent(totalOriginal, totalCompressed)}
+                    </b>
                   </span>
                 </div>
               )}

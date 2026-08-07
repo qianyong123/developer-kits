@@ -4,6 +4,21 @@ import type { CompressSettings } from '../lib/types';
 import HelpTip from './HelpTip';
 import styles from './SettingsPanel.module.css';
 
+/** 质量预设档位：极致 / 高保真（默认） / 均衡 / 小体积 */
+const QUALITY_PRESETS: Array<{ value: number; label: string }> = [
+  { value: 95, label: '极致' },
+  { value: 80, label: '高保真' },
+  { value: 65, label: '标准' },
+  { value: 40, label: '紧凑' },
+];
+/** 压缩比例预设档位：压缩后体积不超过原图的对应比例（原图 = 不主动缩小，仅保证不超过原图） */
+const RATIO_PRESETS: Array<{ value: number; label: string }> = [
+  { value: 100, label: '原图' },
+  { value: 70, label: '70%' },
+  { value: 50, label: '50%' },
+  { value: 20, label: '20%' },
+];
+
 interface Props {
   settings: CompressSettings;
   onChange: (settings: CompressSettings) => void;
@@ -18,66 +33,45 @@ export default function SettingsPanel({ settings, onChange }: Props) {
 
       <div className={styles.field}>
         <div className={styles.labelRow}>
-          <span className={styles.label}>{messages.image.mode}</span>
-          <HelpTip text={messages.image.settingsHelp.mode} />
+          <span className={styles.label}>{messages.image.quality}</span>
+          <HelpTip text={messages.image.settingsHelp.quality} />
         </div>
-        <div className={styles.radios}>
-          <label className={styles.radio}>
-            <input
-              type="radio"
-              name="mode"
-              checked={settings.mode === 'quality'}
-              onChange={() => set({ mode: 'quality' })}
-            />
-            <span>{messages.image.modeQuality}</span>
-          </label>
-          <label className={styles.radio}>
-            <input
-              type="radio"
-              name="mode"
-              checked={settings.mode === 'target'}
-              onChange={() => set({ mode: 'target' })}
-            />
-            <span>{messages.image.modeTarget}</span>
-          </label>
+        <div className={styles.qualityRow}>
+          {QUALITY_PRESETS.map((q) => (
+            <button
+              key={q.value}
+              type="button"
+              className={
+                q.value === settings.quality ? styles.presetBtnActive : styles.presetBtn
+              }
+              onClick={() => set({ quality: q.value })}
+            >
+              {q.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {settings.mode === 'quality' ? (
-        <div className={styles.field}>
-          <div className={styles.labelRow}>
-            <span className={styles.label}>{messages.image.quality}</span>
-            <HelpTip text={messages.image.settingsHelp.quality} />
-          </div>
-          <div className={styles.qualityRow}>
-            <input
-              type="range"
-              min={10}
-              max={100}
-              value={settings.quality}
-              onChange={(e) => set({ quality: Number(e.target.value) })}
-            />
-            <span className={styles.qualityValue}>{settings.quality}</span>
-          </div>
+      <div className={styles.field}>
+        <div className={styles.labelRow}>
+          <span className={styles.label}>{messages.image.compressRatio}</span>
+          <HelpTip text={messages.image.settingsHelp.compressRatio} />
         </div>
-      ) : (
-        <div className={styles.field}>
-          <div className={styles.labelRow}>
-            <label className={styles.label} htmlFor="target-kb">
-              {messages.image.targetSize} ({messages.image.targetUnit})
-            </label>
-            <HelpTip text={messages.image.settingsHelp.targetSize} />
-          </div>
-          <input
-            id="target-kb"
-            type="number"
-            min={1}
-            max={10240}
-            value={settings.targetKB}
-            onChange={(e) => set({ targetKB: Math.max(1, Number(e.target.value) || 1) })}
-          />
+        <div className={styles.qualityRow}>
+          {RATIO_PRESETS.map((r) => (
+            <button
+              key={r.value}
+              type="button"
+              className={
+                r.value === settings.compressRatio ? styles.presetBtnActive : styles.presetBtn
+              }
+              onClick={() => set({ compressRatio: r.value })}
+            >
+              {r.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       <div className={styles.field}>
         <div className={styles.labelRow}>

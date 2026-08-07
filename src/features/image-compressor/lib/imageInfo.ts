@@ -110,27 +110,6 @@ function parseJpegDimensions(head: Uint8Array): ImageDimensions | null {
   return null;
 }
 
-/** 检测 GIF 是否含动画控制块（NETSCAPE2.0 扩展）。 */
-export async function isAnimatedGif(file: File): Promise<boolean> {
-  try {
-    const head = new Uint8Array(await file.slice(0, Math.min(file.size, HEAD_SIZE)).arrayBuffer());
-    const needle = [0x4e, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2e, 0x30];
-    for (let i = 0; i + needle.length <= head.length; i++) {
-      let ok = true;
-      for (let j = 0; j < needle.length; j++) {
-        if (head[i + j] !== needle[j]) {
-          ok = false;
-          break;
-        }
-      }
-      if (ok) return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-
 function readU32BE(bytes: Uint8Array, offset: number): number {
   return (
     ((bytes[offset] << 24) |

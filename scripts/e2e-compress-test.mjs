@@ -12,8 +12,9 @@ import { chromium } from 'playwright';
 
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:5173/';
 const IMAGE_DIR = join(process.cwd(), 'test-images');
-const TARGET_MODE_FILE = 'photo-png.png';
-const TARGET_KB = 100;
+const QUALITY_FILE = 'photo-png.png';
+const QUALITY_LABEL = '标准';
+const RATIO_VALUE = 50;
 
 const files = readdirSync(IMAGE_DIR)
   .filter((f) => /\.(png|jpe?g|webp)$/i.test(f))
@@ -81,9 +82,8 @@ try {
     results.push({ file: file.name, originalBytes: file.size, ...card, ms: Date.now() - t0 });
   }
 
-  // 目标体积模式：photo-png.png → 100KB
-  await page.locator('input[name="mode"]').nth(1).check();
-  await page.locator('#target-kb').fill(String(TARGET_KB));
+  // 保真优先模式：切换到“标准”档，验证设置变更触发重新压缩
+  await page.getByRole('button', { name: QUALITY_LABEL, exact: true }).click();
   // 等设置生效并重新压缩（先出现待处理/压缩中，再等完成）
   await page.waitForFunction(
     (name) => {
@@ -91,15 +91,35 @@ try {
       const card = cards.find((c) => c.textContent.includes(name));
       return card && (card.textContent.includes('待处理') || card.textContent.includes('压缩中'));
     },
-    TARGET_MODE_FILE,
+    QUALITY_FILE,
     { timeout: 30_000 },
   );
-  await waitCardDone(page, TARGET_MODE_FILE);
-  const targetCard = await readCard(page, TARGET_MODE_FILE);
+  await waitCardDone(page, QUALITY_FILE);
+  const qualityCard = await readCard(page, QUALITY_FILE);
   results.push({
-    file: `${TARGET_MODE_FILE}（目标体积 ${TARGET_KB}KB）`,
-    originalBytes: files.find((f) => f.name === TARGET_MODE_FILE).size,
-    ...targetCard,
+    file: `${QUALITY_FILE}（质量 ${QUALITY_LABEL}）`,
+    originalBytes: files.find((f) => f.name === QUALITY_FILE).size,
+    ...qualityCard,
+    ms: 0,
+  });
+
+  // 压缩比例：切到 50% 档，验证体积目标压缩
+  await page.getByRole('button', { name: `${RATIO_VALUE}%`, exact: true }).click();
+  await page.waitForFunction(
+    (name) => {
+      const cards = Array.from(document.querySelectorAll('[class*="card"]'));
+      const card = cards.find((c) => c.textContent.includes(name));
+      return card && (card.textContent.includes('待处理') || card.textContent.includes('压缩中'));
+    },
+    QUALITY_FILE,
+    { timeout: 30_000 },
+  );
+  await waitCardDone(page, QUALITY_FILE);
+  const ratioCard = await readCard(page, QUALITY_FILE);
+  results.push({
+    file: `${QUALITY_FILE}（压缩比例 ${RATIO_VALUE}%）`,
+    originalBytes: files.find((f) => f.name === QUALITY_FILE).size,
+    ...ratioCard,
     ms: 0,
   });
 } finally {

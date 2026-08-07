@@ -15,8 +15,6 @@ const FORMAT_META: Record<string, { label: string; className: string }> = {
   png: { label: 'PNG', className: 'formatPng' },
   jpeg: { label: 'JPEG', className: 'formatJpeg' },
   webp: { label: 'WebP', className: 'formatWebp' },
-  gif: { label: 'GIF', className: 'formatGif' },
-  bmp: { label: 'BMP', className: 'formatBmp' },
 };
 
 function inputFormatKey(type: string): string {
@@ -27,10 +25,6 @@ function inputFormatKey(type: string): string {
       return 'jpeg';
     case 'image/webp':
       return 'webp';
-    case 'image/gif':
-      return 'gif';
-    case 'image/bmp':
-      return 'bmp';
     default:
       return '';
   }
@@ -49,12 +43,6 @@ function noteText(note?: string): string | null {
       return messages.image.noteCannotReach;
     case 'metadata-unsupported':
       return messages.image.noteMetadataWebp;
-    case 'kept-original':
-      return messages.image.noteKeptOriginal;
-    case 'converted-to-png':
-      return messages.image.noteConvertedToPng;
-    case 'gif-animated':
-      return messages.image.noteGifAnimated;
     default:
       return null;
   }

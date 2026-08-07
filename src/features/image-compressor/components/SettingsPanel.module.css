@@ -43,41 +43,35 @@
   opacity: 0.85;
 }
 
-.radios {
+.qualityRow {
   display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
-.radio {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
+.presetBtn,
+.presetBtnActive {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: var(--radius-sm);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
-.radio input {
-  margin-top: 2px;
-  accent-color: var(--accent);
+.presetBtn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
-.qualityRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.presetBtn:hover {
+  border-color: var(--accent);
 }
 
-.qualityRow input[type='range'] {
-  flex: 1;
-  accent-color: var(--accent);
-}
-
-.qualityValue {
-  min-width: 34px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
+.presetBtnActive {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
 }
 
 .check {

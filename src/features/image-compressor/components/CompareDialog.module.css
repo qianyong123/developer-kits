@@ -35,39 +35,6 @@
   font-size: 16px;
 }
 
-.sideBySide {
-  display: flex;
-  gap: 8px;
-}
-
-.sidePanel {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.sideImg {
-  max-width: 100%;
-  max-height: 75vh;
-  min-height: 100px;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  background: #0b0d11;
-  border-radius: var(--radius-sm);
-  display: block;
-}
-
-.sideLabel {
-  margin-top: 6px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
 .meta {
   display: flex;
   justify-content: space-between;
@@ -78,7 +45,7 @@
 
 .slider {
   position: relative;
-  display: none;
+  display: block;
   overflow: hidden;
   border-radius: var(--radius-sm);
   background: #0b0d11;
@@ -99,10 +66,10 @@
   max-width: 100%;
   max-height: 70vh;
   min-height: 100px;
-  object-fit: contain;
   width: auto;
   height: auto;
   margin: 0 auto;
+  object-fit: contain;
 }
 
 .sliderOverlay {
@@ -164,13 +131,5 @@
 @media (max-width: 767px) {
   .dialog {
     max-width: min(92vw, 460px);
-  }
-
-  .sideBySide {
-    display: none;
-  }
-
-  .slider {
-    display: block;
   }
 }

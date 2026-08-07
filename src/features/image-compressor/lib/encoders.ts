@@ -92,7 +92,7 @@ export interface QuantizedPngOptions {
   maxEdge: number;
   colors: number;
   dither: number;
-  /** 是否允许自适应颜色缩减（手动质量模式传 false 以保真） */
+  /** 是否允许自适应颜色缩减（保真优先，固定传 false） */
   adaptive?: boolean;
 }
 

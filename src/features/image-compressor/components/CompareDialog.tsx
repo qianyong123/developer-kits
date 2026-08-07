@@ -17,7 +17,6 @@ export default function CompareDialog({ item, onClose }: { item: ImageItem; onCl
           </button>
         </div>
 
-        <SideBySide before={item.originalUrl} after={item.result.url} />
         <SliderCompare before={item.originalUrl} after={item.result.url} />
 
         <div className={styles.meta}>
@@ -29,21 +28,6 @@ export default function CompareDialog({ item, onClose }: { item: ImageItem; onCl
           </span>
         </div>
       </div>
-    </div>
-  );
-}
-
-function SideBySide({ before, after }: { before: string; after: string }) {
-  return (
-    <div className={styles.sideBySide}>
-      <figure className={styles.sidePanel}>
-        <img className={styles.sideImg} src={before} alt={messages.image.original} draggable={false} />
-        <figcaption className={styles.sideLabel}>{messages.image.original}</figcaption>
-      </figure>
-      <figure className={styles.sidePanel}>
-        <img className={styles.sideImg} src={after} alt={messages.image.compressed} draggable={false} />
-        <figcaption className={styles.sideLabel}>{messages.image.compressed}</figcaption>
-      </figure>
     </div>
   );
 }

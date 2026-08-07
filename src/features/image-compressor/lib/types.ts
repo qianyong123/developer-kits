@@ -1,9 +1,8 @@
 import type { FormatOption, OutputFormat } from './encoders';
 
 export interface CompressSettings {
-  mode: 'quality' | 'target';
   quality: number;
-  targetKB: number;
+  compressRatio: number;
   format: FormatOption;
   keepMetadata: boolean;
   maxEdge: number;

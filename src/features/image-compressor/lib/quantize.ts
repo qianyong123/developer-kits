@@ -1,11 +1,13 @@
 /** PNG 有损量化：4D（预乘 alpha）中位切分 + k-means 精修 + 自适应抖动 + 索引色 PNG 编码。 */
 
+import { deflateZlib } from './deflate';
+
 export interface QuantizeOptions {
   /** 调色板颜色数（不含透明项），2..256 */
   colors: number;
   /** 抖动强度 0..1 */
   dither: number;
-  /** 是否允许自适应颜色缩减（仅目标体积模式开启；手动质量模式关闭以保真） */
+  /** 是否允许自适应颜色缩减（保真优先模式下关闭） */
   adaptive?: boolean;
 }
 
@@ -209,18 +211,26 @@ function medianCutPalette(
 
     let split = false;
     for (const ch of channels) {
-      const splitAt = medianSplit(box, ch, prefix);
-      const b1: Box = { min: [...box.min], max: [...box.max], count: 0 };
-      const b2: Box = { min: [...box.min], max: [...box.max], count: 0 };
-      b1.max[ch] = splitAt;
-      b2.min[ch] = splitAt + 1;
-      b1.count = countRegion(prefix, b1.min, b1.max);
-      b2.count = countRegion(prefix, b2.min, b2.max);
-      if (b1.count > 0 && b2.count > 0) {
-        boxes.splice(target, 1, b1, b2);
-        split = true;
-        break;
+      let splitAt = medianSplit(box, ch, prefix);
+      // 中位数可能落在箱子的最末 bin（大块同色背景堆在 max），导致右半区为空；
+      // 也可能落在最前 bin（透明/同色占多数，堆在 min）。先直接尝试切分，
+      // 右侧为空时再把切分点向左移动，直到两侧都有像素，避免调色板塌缩成单一背景色。
+      for (;;) {
+        const b1: Box = { min: [...box.min], max: [...box.max], count: 0 };
+        const b2: Box = { min: [...box.min], max: [...box.max], count: 0 };
+        b1.max[ch] = splitAt;
+        b2.min[ch] = splitAt + 1;
+        b1.count = countRegion(prefix, b1.min, b1.max);
+        b2.count = countRegion(prefix, b2.min, b2.max);
+        if (b1.count > 0 && b2.count > 0) {
+          boxes.splice(target, 1, b1, b2);
+          split = true;
+          break;
+        }
+        if (splitAt <= box.min[ch]) break;
+        splitAt -= 1;
       }
+      if (split) break;
     }
     if (split) continue;
     // 所有通道都切不开：该箱只有一个有效 bin，标记为不可再分
@@ -713,6 +723,7 @@ async function encodeIndexedPng(
     if (endY < height) await yieldToUI();
   }
 
+  await yieldToUI(); // 让进度条先渲染到 90%，再执行同步压缩
   const idatData = await deflateZlib(raw);
   onProgress?.(1);
 
@@ -820,56 +831,6 @@ function paethPredictor(a: number, b: number, c: number): number {
   if (pa <= pb && pa <= pc) return a;
   if (pb <= pc) return b;
   return c;
-}
-
-async function deflateZlib(data: Uint8Array): Promise<Uint8Array> {
-  if (typeof CompressionStream !== 'undefined') {
-    // 先开始消费输出，再写入并关闭：避免浏览器里“先关写端再读输出”因背压互相等待而死锁
-    const stream = new CompressionStream('deflate');
-    const writer = stream.writable.getWriter();
-    const readPromise = new Response(stream.readable).arrayBuffer();
-    writer.write(data.slice());
-    await writer.close();
-    return new Uint8Array(await readPromise);
-  }
-  return storedDeflate(data);
-}
-
-/** 兜底：zlib 头 + 存储块（无压缩），保证在无 CompressionStream 的环境仍可输出合法 PNG。 */
-function storedDeflate(data: Uint8Array): Uint8Array {
-  const parts: number[][] = [[0x78, 0x01]];
-  let offset = 0;
-  const maxLen = 0xffff;
-  while (offset < data.length) {
-    const len = Math.min(maxLen, data.length - offset);
-    const isLast = offset + len >= data.length;
-    parts.push([isLast ? 1 : 0]);
-    parts.push([len & 0xff, (len >>> 8) & 0xff, (~len) & 0xff, ((~len) >>> 8) & 0xff]);
-    parts.push(Array.from(data.subarray(offset, offset + len)));
-    offset += len;
-  }
-  if (data.length === 0) parts.push([1, 0, 0, 0xff, 0xff]);
-  const adler = adler32(data);
-  parts.push([(adler >>> 24) & 0xff, (adler >>> 16) & 0xff, (adler >>> 8) & 0xff, adler & 0xff]);
-
-  const total = parts.reduce((sum, p) => sum + p.length, 0);
-  const out = new Uint8Array(total);
-  let offsetOut = 0;
-  for (const p of parts) {
-    out.set(p, offsetOut);
-    offsetOut += p.length;
-  }
-  return out;
-}
-
-function adler32(data: Uint8Array): number {
-  let a = 1;
-  let b = 0;
-  for (let i = 0; i < data.length; i++) {
-    a = (a + data[i]) % 65521;
-    b = (b + a) % 65521;
-  }
-  return ((b << 16) | a) >>> 0;
 }
 
 /** 让出主线程，使 UI 能在分片处理间隙渲染进度。 */
