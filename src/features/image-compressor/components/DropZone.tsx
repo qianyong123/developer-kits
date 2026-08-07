@@ -39,7 +39,7 @@ export default function DropZone({ onFiles }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*,.svg"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/svg+xml,image/avif,image/x-icon,image/tiff,image/vnd.microsoft.icon,.jpg,.jpeg,.png,.webp,.gif,.bmp,.svg,.avif,.ico,.tiff"
         multiple
         hidden
         onChange={(e) => {
