@@ -52,7 +52,7 @@ export default function DropZone({ onFiles }: Props) {
         const handles = await picker({
           multiple: true,
           types: PICK_TYPES,
-          excludeAcceptAllOption: false,
+          excludeAcceptAllOption: true,
         });
         const files = await Promise.all(handles.map((h) => h.getFile()));
         onFiles(files);
