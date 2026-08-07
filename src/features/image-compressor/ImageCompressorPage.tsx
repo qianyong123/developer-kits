@@ -27,6 +27,21 @@ const MAX_ITEMS = 50;
 let idCounter = 0;
 const nextId = () => `img-${++idCounter}`;
 
+function formatLabel(file: File): string {
+  const map: Record<string, string> = {
+    'image/gif': 'GIF',
+    'image/bmp': 'BMP',
+    'image/svg+xml': 'SVG',
+    'image/avif': 'AVIF',
+    'image/x-icon': 'ICO',
+    'image/vnd.microsoft.icon': 'ICO',
+    'image/tiff': 'TIFF',
+  };
+  if (map[file.type]) return map[file.type];
+  const ext = file.name.split('.').pop()?.toUpperCase();
+  return ext && ext.length <= 5 ? ext : '该图片';
+}
+
 const DEFAULT_SETTINGS: CompressSettings = {
   quality: 80,
   compressRatio: 100,
@@ -66,10 +81,12 @@ export default function ImageCompressorPage() {
     if (current.length === 0) return;
 
     const gen = ++genRef.current;
-    const snapshot = current.map((it) => {
-      if (it.result) URL.revokeObjectURL(it.result.url);
-      return { ...it, status: 'pending' as const, result: undefined, error: undefined, progress: undefined };
-    });
+    const snapshot = current
+      .filter((it) => it.status !== 'unsupported')
+      .map((it) => {
+        if (it.result) URL.revokeObjectURL(it.result.url);
+        return { ...it, status: 'pending' as const, result: undefined, error: undefined, progress: undefined };
+      });
     setItems(snapshot);
     setBusy(true);
     const runSettings = settingsRef.current;
@@ -118,23 +135,14 @@ export default function ImageCompressorPage() {
   const addFiles = useCallback(async (files: File[]) => {
     const notices: string[] = [];
 
-    // 1. 格式过滤：列出不支持的格式文件名提醒
+    const supported = files.filter((f) => ALLOWED_TYPES.includes(f.type));
     const unsupported = files.filter((f) => !ALLOWED_TYPES.includes(f.type));
-    if (unsupported.length > 0) {
-      const shown = unsupported
-        .slice(0, 5)
-        .map((f) => f.name)
-        .join('、');
-      const extra = unsupported.length > 5 ? `等 ${unsupported.length} 个` : '';
-      notices.push(messages.image.unsupportedIgnored(shown, extra));
-    }
-    const typeOk = files.filter((f) => ALLOWED_TYPES.includes(f.type));
 
-    // 2. 大小过滤
-    const sizeOk = typeOk.filter((f) => f.size <= MAX_FILE_SIZE);
-    if (sizeOk.length !== typeOk.length) notices.push(messages.image.fileTooLarge);
+    // 支持格式：大小过滤
+    const sizeOk = supported.filter((f) => f.size <= MAX_FILE_SIZE);
+    if (sizeOk.length !== supported.length) notices.push(messages.image.fileTooLarge);
 
-    // 3. 像素尺寸过滤
+    // 支持格式：像素尺寸过滤
     let valid = sizeOk;
     if (valid.length > 0) {
       const dimOk: File[] = [];
@@ -152,29 +160,47 @@ export default function ImageCompressorPage() {
       valid = dimOk;
     }
 
-    // 4. 数量截断放最后：有效图片优先保留
+    // 数量限制：支持格式优先保留，不支持的图片也计入列表
     const remaining = MAX_ITEMS - itemsRef.current.length;
     if (remaining <= 0) {
       setNotice([...notices, messages.image.maxItemsReached].join('；'));
       return;
     }
-    if (valid.length > remaining) {
-      notices.push(messages.image.maxItemsIgnored(valid.length - remaining));
-      valid = valid.slice(0, remaining);
+    const totalIncoming = valid.length + unsupported.length;
+    let keptSupported = valid;
+    let keptUnsupported = unsupported;
+    if (totalIncoming > remaining) {
+      notices.push(messages.image.maxItemsIgnored(totalIncoming - remaining));
+      if (valid.length >= remaining) {
+        keptSupported = valid.slice(0, remaining);
+        keptUnsupported = [];
+      } else {
+        keptUnsupported = unsupported.slice(0, remaining - valid.length);
+      }
     }
 
     if (notices.length > 0) setNotice(notices.join('；'));
-    if (valid.length === 0) return;
 
-    const created: ImageItem[] = valid.map((file) => ({
-      id: nextId(),
-      file,
-      originalUrl: URL.createObjectURL(file),
-      originalSize: file.size,
-      status: 'pending',
-    }));
+    const created: ImageItem[] = [
+      ...keptUnsupported.map((file) => ({
+        id: nextId(),
+        file,
+        originalUrl: URL.createObjectURL(file),
+        originalSize: file.size,
+        status: 'unsupported' as const,
+        error: messages.image.unsupportedFormat(formatLabel(file)),
+      })),
+      ...keptSupported.map((file) => ({
+        id: nextId(),
+        file,
+        originalUrl: URL.createObjectURL(file),
+        originalSize: file.size,
+        status: 'pending' as const,
+      })),
+    ];
+    if (created.length === 0) return;
     setItems((prev) => [...prev, ...created]);
-    setNeedCompress(true);
+    if (keptSupported.length > 0) setNeedCompress(true);
   }, []);
 
   const removeItem = useCallback((id: string) => {
@@ -259,7 +285,11 @@ export default function ImageCompressorPage() {
         )}
 
         <div className={styles.toolbar}>
-          <button className="btn" disabled={busy || items.length === 0} onClick={() => void startCompress()}>
+          <button
+            className="btn"
+            disabled={busy || !items.some((it) => it.status !== 'unsupported')}
+            onClick={() => void startCompress()}
+          >
             {messages.image.recompress}
           </button>
           <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>

@@ -17,7 +17,7 @@ export interface CompressResult {
   note?: string;
 }
 
-export type ItemStatus = 'pending' | 'processing' | 'done' | 'error';
+export type ItemStatus = 'pending' | 'processing' | 'done' | 'error' | 'unsupported';
 
 export interface ImageItem {
   id: string;

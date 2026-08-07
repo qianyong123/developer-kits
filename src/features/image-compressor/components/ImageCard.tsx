@@ -35,6 +35,7 @@ const STATUS_TEXT: Record<ImageItem['status'], string> = {
   processing: messages.image.statusProcessing,
   done: messages.image.statusDone,
   error: messages.image.statusError,
+  unsupported: '未支持',
 };
 
 function noteText(note?: string): string | null {
@@ -105,7 +106,7 @@ export default function ImageCard({ item, onRemove, onDownload, onCompare }: Pro
               </span>
             )}
           </span>
-          {item.status === 'error' ? (
+          {item.status === 'error' || item.status === 'unsupported' ? (
             <span className={styles.errorText}>{item.error}</span>
           ) : (
             result && (

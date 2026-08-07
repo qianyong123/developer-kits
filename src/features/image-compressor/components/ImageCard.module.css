@@ -148,6 +148,11 @@
   color: var(--danger);
 }
 
+.unsupported {
+  background: rgba(230, 162, 60, 0.15);
+  color: var(--warning);
+}
+
 .quality {
   color: var(--text-secondary);
 }

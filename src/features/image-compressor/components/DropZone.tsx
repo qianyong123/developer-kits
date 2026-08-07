@@ -24,7 +24,11 @@ export default function DropZone({ onFiles }: Props) {
       onDrop={(e) => {
         e.preventDefault();
         setDragging(false);
-        onFiles(Array.from(e.dataTransfer.files));
+        // 只接收图片文件，过滤掉文档/视频等非图片
+        const imgs = Array.from(e.dataTransfer.files).filter((f) =>
+          f.type.startsWith('image/'),
+        );
+        onFiles(imgs);
       }}
       role="button"
       tabIndex={0}
