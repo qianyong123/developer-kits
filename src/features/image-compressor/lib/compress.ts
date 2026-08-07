@@ -87,13 +87,6 @@ async function compressOnce(
     encoded = await encodeBitmap(bitmap, { format, quality, maxEdge: settings.maxEdge });
   }
 
-  // 压缩结果不小于原图时，直接保留原文件（不降质、不输出更差的结果）
-  if (encoded.size >= file.size) {
-    format = resolveOutputFormat(file, 'original');
-    onProgress?.(0.98);
-    return makeResult(file, format, quality);
-  }
-
   // 超出目标体积时，自动下调质量到“不超过目标”的最高质量（保真优先：能达标就尽量高）
   const targetBytes = Math.max(1, Math.round((file.size * settings.compressRatio) / 100));
   if (encoded.size > targetBytes) {
@@ -119,6 +112,14 @@ async function compressOnce(
     encoded = await encodeAt(adjusted);
     quality = adjusted;
   }
+
+  // 尽力压缩后仍不小于原图时，保留原文件（不输出更差的结果）
+  if (encoded.size >= file.size) {
+    format = resolveOutputFormat(file, 'original');
+    onProgress?.(0.98);
+    return makeResult(file, format, quality);
+  }
+
   onProgress?.(0.95);
   const { blob, note } = await attachMetadataIfNeeded(
     encoded,
