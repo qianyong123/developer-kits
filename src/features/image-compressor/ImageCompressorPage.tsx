@@ -118,26 +118,23 @@ export default function ImageCompressorPage() {
   const addFiles = useCallback(async (files: File[]) => {
     const notices: string[] = [];
 
-    // 数量限制：列表已有数量 + 本次新增不能超过上限
-    const remaining = MAX_ITEMS - itemsRef.current.length;
-    if (remaining <= 0) {
-      setNotice(messages.image.maxItemsReached);
-      return;
+    // 1. 格式过滤：列出不支持的格式文件名提醒
+    const unsupported = files.filter((f) => !ALLOWED_TYPES.includes(f.type));
+    if (unsupported.length > 0) {
+      const shown = unsupported
+        .slice(0, 5)
+        .map((f) => f.name)
+        .join('、');
+      const extra = unsupported.length > 5 ? `等 ${unsupported.length} 个` : '';
+      notices.push(messages.image.unsupportedIgnored(shown, extra));
     }
-    let pending = files;
-    if (pending.length > remaining) {
-      notices.push(messages.image.maxItemsIgnored(pending.length - remaining));
-      pending = pending.slice(0, remaining);
-    }
+    const typeOk = files.filter((f) => ALLOWED_TYPES.includes(f.type));
 
-    const typeOk = pending.filter((f) => ALLOWED_TYPES.includes(f.type));
+    // 2. 大小过滤
     const sizeOk = typeOk.filter((f) => f.size <= MAX_FILE_SIZE);
-
-    if (pending.some((f) => f.type === 'image/gif')) notices.push(messages.image.gifUnsupported);
-    if (pending.some((f) => f.type === 'image/bmp')) notices.push(messages.image.bmpUnsupported);
-    if (typeOk.length !== pending.length) notices.push(messages.image.unsupportedIgnored);
     if (sizeOk.length !== typeOk.length) notices.push(messages.image.fileTooLarge);
 
+    // 3. 像素尺寸过滤
     let valid = sizeOk;
     if (valid.length > 0) {
       const dimOk: File[] = [];
@@ -153,6 +150,17 @@ export default function ImageCompressorPage() {
       }
       if (dimOk.length !== sizeOk.length) notices.push(messages.image.imageTooLarge);
       valid = dimOk;
+    }
+
+    // 4. 数量截断放最后：有效图片优先保留
+    const remaining = MAX_ITEMS - itemsRef.current.length;
+    if (remaining <= 0) {
+      setNotice([...notices, messages.image.maxItemsReached].join('；'));
+      return;
+    }
+    if (valid.length > remaining) {
+      notices.push(messages.image.maxItemsIgnored(valid.length - remaining));
+      valid = valid.slice(0, remaining);
     }
 
     if (notices.length > 0) setNotice(notices.join('；'));
