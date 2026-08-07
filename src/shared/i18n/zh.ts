@@ -17,8 +17,6 @@ export const messages = {
     unsupportedFormat: (name: string) => `暂不支持 ${name} 格式，未压缩`,
     fileTooLarge: '文件过大（单个最大 100MB），已忽略',
     imageTooLarge: '图片尺寸过大（超过 16384px 或 1 亿像素），已忽略',
-    maxItemsReached: '最多支持 50 张图片，已达到上限',
-    maxItemsIgnored: (n: number) => `最多支持 50 张图片，已忽略多余的 ${n} 张`,
     settings: '压缩设置',
     quality: '质量',
     compressRatio: '压缩比例',

@@ -22,7 +22,6 @@ import styles from './ImageCompressorPage.module.css';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const CONCURRENCY = 2;
-const MAX_ITEMS = 50;
 
 let idCounter = 0;
 const nextId = () => `img-${++idCounter}`;
@@ -160,29 +159,10 @@ export default function ImageCompressorPage() {
       valid = dimOk;
     }
 
-    // 数量限制：支持格式优先保留，不支持的图片也计入列表
-    const remaining = MAX_ITEMS - itemsRef.current.length;
-    if (remaining <= 0) {
-      setNotice([...notices, messages.image.maxItemsReached].join('；'));
-      return;
-    }
-    const totalIncoming = valid.length + unsupported.length;
-    let keptSupported = valid;
-    let keptUnsupported = unsupported;
-    if (totalIncoming > remaining) {
-      notices.push(messages.image.maxItemsIgnored(totalIncoming - remaining));
-      if (valid.length >= remaining) {
-        keptSupported = valid.slice(0, remaining);
-        keptUnsupported = [];
-      } else {
-        keptUnsupported = unsupported.slice(0, remaining - valid.length);
-      }
-    }
-
     if (notices.length > 0) setNotice(notices.join('；'));
 
     const created: ImageItem[] = [
-      ...keptUnsupported.map((file) => ({
+      ...unsupported.map((file) => ({
         id: nextId(),
         file,
         originalUrl: URL.createObjectURL(file),
@@ -190,7 +170,7 @@ export default function ImageCompressorPage() {
         status: 'unsupported' as const,
         error: messages.image.unsupportedFormat(formatLabel(file)),
       })),
-      ...keptSupported.map((file) => ({
+      ...valid.map((file) => ({
         id: nextId(),
         file,
         originalUrl: URL.createObjectURL(file),
@@ -200,7 +180,7 @@ export default function ImageCompressorPage() {
     ];
     if (created.length === 0) return;
     setItems((prev) => [...prev, ...created]);
-    if (keptSupported.length > 0) setNeedCompress(true);
+    if (valid.length > 0) setNeedCompress(true);
   }, []);
 
   const removeItem = useCallback((id: string) => {
