@@ -80,18 +80,19 @@ export default function ImageCompressorPage() {
     if (current.length === 0) return;
 
     const gen = ++genRef.current;
-    const snapshot = current
-      .filter((it) => it.status !== 'unsupported')
-      .map((it) => {
-        if (it.result) URL.revokeObjectURL(it.result.url);
-        return { ...it, status: 'pending' as const, result: undefined, error: undefined, progress: undefined };
-      });
+    // unsupported（如 SVG）保留在列表中，不参与压缩
+    const snapshot = current.map((it) => {
+      if (it.status === 'unsupported') return it;
+      if (it.result) URL.revokeObjectURL(it.result.url);
+      return { ...it, status: 'pending' as const, result: undefined, error: undefined, progress: undefined };
+    });
     setItems(snapshot);
     setBusy(true);
     const runSettings = settingsRef.current;
+    const runnable = snapshot.filter((it) => it.status !== 'unsupported');
 
     await runPool(
-      snapshot,
+      runnable,
       async (item) => {
         if (genRef.current !== gen) return;
         updateItem(item.id, { status: 'processing', progress: 0 });
