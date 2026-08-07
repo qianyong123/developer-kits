@@ -41,3 +41,11 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   text-align: left;
 }
+
+@media (max-width: 640px) {
+  .bubble {
+    width: min(230px, 78vw);
+    left: auto;
+    right: 0;
+  }
+}
