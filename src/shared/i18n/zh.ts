@@ -41,6 +41,7 @@ export const messages = {
     summary: '汇总',
     images: '张',
     totalRatio: '总压缩率',
+    unsupportedSummary: (n: number) => `${n} 张不支持`,
     processed: '已处理',
     of: '/',
     statusPending: '待处理',

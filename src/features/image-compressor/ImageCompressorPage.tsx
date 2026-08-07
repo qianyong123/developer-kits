@@ -234,6 +234,7 @@ export default function ImageCompressorPage() {
   const compareItem = items.find((it) => it.id === compareId && it.result) ?? null;
   const resultCount = items.filter((it) => it.result).length;
   const doneItems = items.filter((it) => it.result);
+  const unsupportedCount = items.filter((it) => it.status === 'unsupported').length;
   const totalOriginal = doneItems.reduce((sum, it) => sum + it.originalSize, 0);
   const totalCompressed = doneItems.reduce((sum, it) => sum + (it.result?.size ?? 0), 0);
   const finishedCount = items.filter((it) => it.status === 'done' || it.status === 'error').length;
@@ -328,6 +329,12 @@ export default function ImageCompressorPage() {
                     >
                       {ratioPercent(totalOriginal, totalCompressed)}
                     </b>
+                    {unsupportedCount > 0 && (
+                      <span className={styles.summaryUnsupported}>
+                        {' · '}
+                        {messages.image.unsupportedSummary(unsupportedCount)}
+                      </span>
+                    )}
                   </span>
                 </div>
               )}

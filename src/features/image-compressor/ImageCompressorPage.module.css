@@ -121,6 +121,11 @@
   font-size: 14px;
 }
 
+.summaryUnsupported {
+  color: var(--warning);
+  font-weight: 600;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
