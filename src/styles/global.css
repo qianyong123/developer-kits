@@ -84,5 +84,9 @@ button {
 .btn-ghost-danger {
   background: transparent;
   border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost-danger:hover:not(:disabled) {
   color: var(--danger);
 }

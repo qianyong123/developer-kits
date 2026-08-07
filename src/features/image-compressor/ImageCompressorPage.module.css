@@ -44,6 +44,10 @@
   flex-wrap: wrap;
 }
 
+.toolbarPrimary {
+  margin-left: auto;
+}
+
 .body {
   display: flex;
   gap: 16px;

@@ -254,15 +254,15 @@ export default function ImageCompressorPage() {
           <button className="btn" disabled={busy || items.length === 0} onClick={() => void startCompress()}>
             {messages.image.recompress}
           </button>
+          <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
+            {messages.image.clearAll}
+          </button>
           <button
-            className="btn btn-primary"
+            className={`btn btn-primary ${styles.toolbarPrimary}`}
             disabled={zipping || resultCount === 0}
             onClick={() => void downloadAll()}
           >
             {zipping ? messages.image.zipping : messages.image.downloadAll}
-          </button>
-          <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
-            {messages.image.clearAll}
           </button>
         </div>
       </header>
