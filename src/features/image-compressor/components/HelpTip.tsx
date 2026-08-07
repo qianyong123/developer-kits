@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './HelpTip.module.css';
 
 function isTouchDevice(): boolean {
@@ -11,6 +11,23 @@ function isTouchDevice(): boolean {
 export default function HelpTip({ text }: { text: string }) {
   const [touch] = useState(isTouchDevice);
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+
+  // 点击气泡以外的区域关闭
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent | TouchEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('touchstart', onDocClick);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('touchstart', onDocClick);
+    };
+  }, [open]);
 
   // 触摸设备上 tap 会先触发 mouseenter，导致第一次点击被取反，改为只用点击切换
   const hoverProps = touch
@@ -22,9 +39,13 @@ export default function HelpTip({ text }: { text: string }) {
 
   return (
     <span
+      ref={wrapRef}
       className={styles.wrap}
       {...hoverProps}
-      onClick={() => setOpen((v) => !v)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setOpen((v) => !v);
+      }}
       onFocus={touch ? undefined : () => setOpen(true)}
       onBlur={touch ? undefined : () => setOpen(false)}
       tabIndex={0}

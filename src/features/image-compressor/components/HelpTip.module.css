@@ -27,8 +27,9 @@
 
 .bubble {
   position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
   width: 230px;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -44,8 +45,6 @@
 
 @media (max-width: 640px) {
   .bubble {
-    width: min(230px, 78vw);
-    left: auto;
-    right: 0;
+    width: min(230px, 60vw);
   }
 }
