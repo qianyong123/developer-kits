@@ -39,7 +39,7 @@ export default function DropZone({ onFiles }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.svg"
         multiple
         hidden
         onChange={(e) => {
