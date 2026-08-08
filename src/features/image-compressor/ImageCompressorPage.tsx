@@ -89,6 +89,7 @@ export default function ImageCompressorPage() {
   const [compareId, setCompareId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -286,114 +287,116 @@ export default function ImageCompressorPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>{messages.image.title}</h1>
-        <p className={styles.subtitle}>{messages.image.subtitle}</p>
+      <div className={styles.columns}>
+        <div className={styles.mainCol}>
+          <header className={styles.header}>
+            <h1>{messages.image.title}</h1>
+            <p className={styles.subtitle}>{messages.image.subtitle}</p>
 
-        {notice && (
-          <div className={styles.notice}>
-            <span>{notice}</span>
-            <button className={styles.noticeClose} onClick={() => setNotice(null)}>
-              ✕
-            </button>
-          </div>
-        )}
-
-        <div className={styles.toolbar}>
-          <button
-            className="btn"
-            disabled={busy || !items.some((it) => it.status !== 'unsupported')}
-            onClick={() => void startCompress()}
-          >
-            <RefreshIcon size={14} />
-            {messages.image.recompress}
-          </button>
-          <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
-            <TrashIcon size={14} />
-            {messages.image.clearAll}
-          </button>
-          <button
-            className={`btn btn-primary ${styles.toolbarPrimary}`}
-            disabled={zipping || resultCount === 0}
-            onClick={() => void downloadAll()}
-          >
-            <DownloadIcon size={14} />
-            {zipping ? messages.image.zipping : messages.image.downloadAll}
-          </button>
-        </div>
-      </header>
-
-      <FileDropZone
-        accept=".jpg, .jpeg, .png, .webp, .gif, .bmp, .svg, .avif, .ico, .tiff, .heic, .heif"
-        pickTypes={IMAGE_PICK_TYPES}
-        dragTitle={messages.image.dropTitle}
-        tapTitle={messages.image.tapTitle}
-        hint={messages.image.dropHint}
-        features={[messages.image.featureLocal, messages.image.featureExif]}
-        filter={(files) => files.filter((f) => f.type.startsWith('image/'))}
-        onFiles={addFiles}
-      />
-
-      <button
-        className={styles.mobileSettingsToggle}
-        onClick={() => setMobileSettingsOpen((v) => !v)}
-        aria-expanded={mobileSettingsOpen}
-      >
-        {messages.image.settings}
-        {busy ? ` · ${overallPct}%` : ''}
-      </button>
-
-      <div className={styles.body}>
-        <section className={styles.list}>
-          {items.length > 0 && (
-            <>
-              {busy && (
-                <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: `${overallPct}%` }} />
-                  <span>
-                    {messages.image.processed} {finishedCount} {messages.image.of} {items.length} ·{' '}
-                    {overallPct}%
-                  </span>
-                </div>
-              )}
-              {doneItems.length > 0 && (
-                <div className={styles.summary}>
-                  <span>
-                    {messages.image.summary} {doneItems.length} {messages.image.images} ·{' '}
-                    {messages.image.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
-                    {messages.image.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
-                    {messages.image.totalRatio}:{' '}
-                    <b
-                      className={
-                        totalCompressed > totalOriginal ? styles.summaryBad : styles.summaryGood
-                      }
-                    >
-                      {ratioPercent(totalOriginal, totalCompressed)}
-                    </b>
-                    {unsupportedCount > 0 && (
-                      <span className={styles.summaryUnsupported}>
-                        {' · '}
-                        {messages.image.unsupportedSummary(unsupportedCount)}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
-              <div className={styles.grid}>
-                {items.map((it) => (
-                  <ImageCard
-                    key={it.id}
-                    item={it}
-                    previewBg={it.hasTransparency ? 'checker' : 'white'}
-                    onRemove={removeItem}
-                    onDownload={downloadOne}
-                    onCompare={setCompareId}
-                  />
-                ))}
+            {notice && (
+              <div className={styles.notice}>
+                <span>{notice}</span>
+                <button className={styles.noticeClose} onClick={() => setNotice(null)}>
+                  ✕
+                </button>
               </div>
-            </>
-          )}
-        </section>
+            )}
+
+            <div className={styles.toolbar}>
+              <button
+                className="btn"
+                disabled={busy || !items.some((it) => it.status !== 'unsupported')}
+                onClick={() => void startCompress()}
+              >
+                <RefreshIcon size={14} />
+                {messages.image.recompress}
+              </button>
+              <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
+                <TrashIcon size={14} />
+                {messages.image.clearAll}
+              </button>
+              <button
+                className={`btn btn-primary ${styles.toolbarPrimary}`}
+                disabled={zipping || resultCount === 0}
+                onClick={() => void downloadAll()}
+              >
+                <DownloadIcon size={14} />
+                {zipping ? messages.image.zipping : messages.image.downloadAll}
+              </button>
+            </div>
+          </header>
+
+          <FileDropZone
+            accept=".jpg, .jpeg, .png, .webp, .gif, .bmp, .svg, .avif, .ico, .tiff, .heic, .heif"
+            pickTypes={IMAGE_PICK_TYPES}
+            dragTitle={messages.image.dropTitle}
+            tapTitle={messages.image.tapTitle}
+            hint={messages.image.dropHint}
+            features={[messages.image.featureLocal, messages.image.featureExif]}
+            filter={(files) => files.filter((f) => f.type.startsWith('image/'))}
+            onFiles={addFiles}
+          />
+
+          <button
+            className={styles.mobileSettingsToggle}
+            onClick={() => setMobileSettingsOpen((v) => !v)}
+            aria-expanded={mobileSettingsOpen}
+          >
+            {messages.image.settings}
+            {busy ? ` · ${overallPct}%` : ''}
+          </button>
+
+          <section className={styles.list}>
+            {items.length > 0 && (
+              <>
+                {busy && (
+                  <div className={styles.progressBar}>
+                    <div className={styles.progressFill} style={{ width: `${overallPct}%` }} />
+                    <span>
+                      {messages.image.processed} {finishedCount} {messages.image.of} {items.length} ·{' '}
+                      {overallPct}%
+                    </span>
+                  </div>
+                )}
+                {doneItems.length > 0 && (
+                  <div className={styles.summary}>
+                    <span>
+                      {messages.image.summary} {doneItems.length} {messages.image.images} ·{' '}
+                      {messages.image.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
+                      {messages.image.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
+                      {messages.image.totalRatio}:{' '}
+                      <b
+                        className={
+                          totalCompressed > totalOriginal ? styles.summaryBad : styles.summaryGood
+                        }
+                      >
+                        {ratioPercent(totalOriginal, totalCompressed)}
+                      </b>
+                      {unsupportedCount > 0 && (
+                        <span className={styles.summaryUnsupported}>
+                          {' · '}
+                          {messages.image.unsupportedSummary(unsupportedCount)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                <div className={styles.grid}>
+                  {items.map((it) => (
+                    <ImageCard
+                      key={it.id}
+                      item={it}
+                      previewBg={it.hasTransparency ? 'checker' : 'white'}
+                      onRemove={removeItem}
+                      onDownload={downloadOne}
+                      onCompare={setCompareId}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+        </div>
 
         {mobileSettingsOpen && (
           <div className={styles.scrim} onClick={() => setMobileSettingsOpen(false)} />
@@ -413,6 +416,8 @@ export default function ImageCompressorPage() {
               original: totalOriginal,
               compressed: totalCompressed,
             }}
+            collapsed={mobileSettingsOpen ? false : settingsCollapsed}
+            onToggleCollapse={() => setSettingsCollapsed((v) => !v)}
           />
         </aside>
       </div>

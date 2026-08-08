@@ -16,6 +16,13 @@
   gap: 10px;
 }
 
+.titleActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .title {
   margin: 0;
   font-size: 16px;
@@ -42,6 +49,31 @@
 .resetBtn:hover {
   color: var(--accent);
   background: var(--bg-subtle);
+}
+
+.collapseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    transform 0.2s;
+}
+
+.collapseBtn:hover {
+  color: var(--accent);
+  background: var(--bg-subtle);
+}
+
+.collapsed {
+  transform: rotate(180deg);
 }
 
 .field {
@@ -264,18 +296,4 @@
 .compressBtn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.applyBtn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  border-radius: var(--radius-sm);
-  padding: 11px 16px;
-  font-size: 14px;
-}
-
-.applyBtn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
 }

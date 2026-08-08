@@ -1,5 +1,5 @@
 import { messages } from '../../../shared/i18n/zh';
-import { ArrowRightIcon } from '../../../shared/components/Icons';
+import { ArrowRightIcon, ChevronDownIcon } from '../../../shared/components/Icons';
 import HelpTip from '../../../shared/components/HelpTip/HelpTip';
 import { formatBytes, ratioPercent } from '../../../shared/lib/format';
 import type { FormatOption } from '../lib/encoders';
@@ -35,6 +35,8 @@ interface Props {
   onCompress: () => void;
   pendingCount: number;
   totals: { count: number; original: number; compressed: number };
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 export default function SettingsPanel({
@@ -44,6 +46,8 @@ export default function SettingsPanel({
   onCompress,
   pendingCount,
   totals,
+  collapsed,
+  onToggleCollapse,
 }: Props) {
   const set = (patch: Partial<CompressSettings>) => onChange({ ...settings, ...patch });
 
@@ -60,152 +64,165 @@ export default function SettingsPanel({
       <div className={styles.titleRow}>
         <div>
           <h3 className={styles.title}>{messages.image.settings}</h3>
-          <p className={styles.subtitle}>{messages.image.settingsSubtitle}</p>
+          {!collapsed && <p className={styles.subtitle}>{messages.image.settingsSubtitle}</p>}
         </div>
-        <button type="button" className={styles.resetBtn} onClick={onReset}>
-          {messages.image.reset}
-        </button>
-      </div>
-
-      <div className={styles.field}>
-        <div className={styles.labelRow}>
-          <span className={styles.label}>{messages.image.quality}</span>
-          <HelpTip text={messages.image.settingsHelp.quality} />
-        </div>
-        <div className={styles.segmentRow}>
-          {QUALITY_PRESETS.map((q) => (
-            <button
-              key={q.value}
-              type="button"
-              className={
-                q.value === settings.quality ? styles.segmentActive : styles.segment
-              }
-              onClick={() => set({ quality: q.value })}
-            >
-              {q.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={styles.field}>
-        <div className={styles.labelRow}>
-          <span className={styles.label}>{messages.image.compressRatio}</span>
-          <HelpTip text={messages.image.settingsHelp.compressRatio} />
-        </div>
-        <div className={styles.segmentRow}>
-          {RATIO_PRESETS.map((r) => (
-            <button
-              key={r.value}
-              type="button"
-              className={
-                r.value === settings.compressRatio ? styles.segmentActive : styles.segment
-              }
-              onClick={() => set({ compressRatio: r.value })}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={styles.field}>
-        <div className={styles.labelRow}>
-          <span className={styles.label}>{messages.image.format}</span>
-          <HelpTip text={messages.image.settingsHelp.format} />
-        </div>
-        <div className={styles.segmentRow}>
-          {FORMAT_PRESETS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              className={
-                f.value === settings.format ? styles.segmentActive : styles.segment
-              }
-              onClick={() => set({ format: f.value })}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={styles.field}>
-        <div className={styles.switchRow}>
-          <div>
-            <div className={styles.labelRow}>
-              <span className={styles.label}>{messages.image.keepMetadata}</span>
-              <HelpTip text={messages.image.settingsHelp.keepMetadata} />
-            </div>
-            <div className={styles.fieldDesc}>{messages.image.keepMetadataDesc}</div>
-          </div>
+        <div className={styles.titleActions}>
+          <button type="button" className={styles.resetBtn} onClick={onReset}>
+            {messages.image.reset}
+          </button>
           <button
             type="button"
-            role="switch"
-            aria-checked={settings.keepMetadata}
-            className={`${styles.switch} ${settings.keepMetadata ? styles.switchOn : ''}`}
-            onClick={() => set({ keepMetadata: !settings.keepMetadata })}
+            className={`${styles.collapseBtn} ${collapsed ? styles.collapsed : ''}`}
+            onClick={onToggleCollapse}
+            title={collapsed ? messages.image.expandSettings : messages.image.collapseSettings}
+            aria-label={collapsed ? messages.image.expandSettings : messages.image.collapseSettings}
+            aria-expanded={!collapsed}
           >
-            <span className={styles.knob} />
+            <ChevronDownIcon size={15} />
           </button>
         </div>
-        {settings.keepMetadata && settings.format !== 'jpeg' && (
-          <div className={styles.hint}>
-            {settings.format === 'original'
-              ? messages.image.keepMetadataHintOriginal
-              : messages.image.keepMetadataHint}
+      </div>
+
+      {!collapsed && (
+        <>
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <span className={styles.label}>{messages.image.quality}</span>
+              <HelpTip text={messages.image.settingsHelp.quality} />
+            </div>
+            <div className={styles.segmentRow}>
+              {QUALITY_PRESETS.map((q) => (
+                <button
+                  key={q.value}
+                  type="button"
+                  className={
+                    q.value === settings.quality ? styles.segmentActive : styles.segment
+                  }
+                  onClick={() => set({ quality: q.value })}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
 
-      <div className={styles.field}>
-        <div className={styles.labelRow}>
-          <label className={styles.label} htmlFor="max-edge">
-            {messages.image.maxEdge}
-          </label>
-          <span className={styles.edgeHint}>{messages.image.maxEdgeHint}</span>
-        </div>
-        <div className={styles.inputWrap}>
-          <input
-            id="max-edge"
-            type="number"
-            min={0}
-            step={64}
-            placeholder={messages.image.maxEdgePlaceholder}
-            value={settings.maxEdge}
-            onChange={(e) => set({ maxEdge: Math.max(0, Number(e.target.value) || 0) })}
-          />
-          <span className={styles.inputUnit}>px</span>
-        </div>
-      </div>
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <span className={styles.label}>{messages.image.compressRatio}</span>
+              <HelpTip text={messages.image.settingsHelp.compressRatio} />
+            </div>
+            <div className={styles.segmentRow}>
+              {RATIO_PRESETS.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  className={
+                    r.value === settings.compressRatio ? styles.segmentActive : styles.segment
+                  }
+                  onClick={() => set({ compressRatio: r.value })}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <div className={styles.saveCard}>
-        <div className={styles.saveHeader}>
-          <span className={styles.saveLabel}>{messages.image.estimatedSave}</span>
-          <strong className={styles.saveValue}>{formatBytes(Math.max(0, saved))}</strong>
-          <strong className={styles.saveRatio}>{ratio}</strong>
-        </div>
-        <div className={styles.saveBar}>
-          <div className={styles.saveFill} style={{ width: `${savedPct}%` }} />
-        </div>
-        <div className={styles.saveMeta}>
-          {messages.image.saveRate}: {formatBytes(totals.original)} →{' '}
-          {formatBytes(totals.compressed)}
-        </div>
-      </div>
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <span className={styles.label}>{messages.image.format}</span>
+              <HelpTip text={messages.image.settingsHelp.format} />
+            </div>
+            <div className={styles.segmentRow}>
+              {FORMAT_PRESETS.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  className={
+                    f.value === settings.format ? styles.segmentActive : styles.segment
+                  }
+                  onClick={() => set({ format: f.value })}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <button
-        type="button"
-        className={styles.compressBtn}
-        disabled={pendingCount === 0}
-        onClick={onCompress}
-      >
-        {messages.image.compressNow(pendingCount)}
-        <ArrowRightIcon size={16} />
-      </button>
-      <button type="button" className={styles.applyBtn} onClick={onCompress}>
-        {messages.image.applySettings}
-      </button>
+          <div className={styles.field}>
+            <div className={styles.switchRow}>
+              <div>
+                <div className={styles.labelRow}>
+                  <span className={styles.label}>{messages.image.keepMetadata}</span>
+                  <HelpTip text={messages.image.settingsHelp.keepMetadata} />
+                </div>
+                <div className={styles.fieldDesc}>{messages.image.keepMetadataDesc}</div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.keepMetadata}
+                className={`${styles.switch} ${settings.keepMetadata ? styles.switchOn : ''}`}
+                onClick={() => set({ keepMetadata: !settings.keepMetadata })}
+              >
+                <span className={styles.knob} />
+              </button>
+            </div>
+            {settings.keepMetadata && settings.format !== 'jpeg' && (
+              <div className={styles.hint}>
+                {settings.format === 'original'
+                  ? messages.image.keepMetadataHintOriginal
+                  : messages.image.keepMetadataHint}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <label className={styles.label} htmlFor="max-edge">
+                {messages.image.maxEdge}
+              </label>
+              <span className={styles.edgeHint}>{messages.image.maxEdgeHint}</span>
+            </div>
+            <div className={styles.inputWrap}>
+              <input
+                id="max-edge"
+                type="number"
+                min={0}
+                step={64}
+                placeholder={messages.image.maxEdgePlaceholder}
+                value={settings.maxEdge}
+                onChange={(e) => set({ maxEdge: Math.max(0, Number(e.target.value) || 0) })}
+              />
+              <span className={styles.inputUnit}>px</span>
+            </div>
+          </div>
+
+          <div className={styles.saveCard}>
+            <div className={styles.saveHeader}>
+              <span className={styles.saveLabel}>{messages.image.estimatedSave}</span>
+              <strong className={styles.saveValue}>{formatBytes(Math.max(0, saved))}</strong>
+              <strong className={styles.saveRatio}>{ratio}</strong>
+            </div>
+            <div className={styles.saveBar}>
+              <div className={styles.saveFill} style={{ width: `${savedPct}%` }} />
+            </div>
+            <div className={styles.saveMeta}>
+              {messages.image.saveRate}: {formatBytes(totals.original)} →{' '}
+              {formatBytes(totals.compressed)}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className={styles.compressBtn}
+            disabled={pendingCount === 0}
+            onClick={onCompress}
+          >
+            {messages.image.compressNow(pendingCount)}
+            <ArrowRightIcon size={16} />
+          </button>
+        </>
+      )}
     </div>
   );
 }

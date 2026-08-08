@@ -59,21 +59,25 @@
   gap: 6px;
 }
 
-.body {
+.columns {
   display: flex;
   gap: 20px;
   align-items: flex-start;
+}
+
+.mainCol {
+  flex: 1;
+  min-width: 0;
 }
 
 .settings {
   width: 300px;
   flex-shrink: 0;
   position: sticky;
-  top: 24px;
+  top: 0;
 }
 
 .list {
-  flex: 1;
   min-width: 0;
 }
 
@@ -155,7 +159,7 @@
     padding: 16px;
   }
 
-  .body {
+  .columns {
     flex-direction: column;
   }
 
