@@ -98,13 +98,14 @@ export default function ImageCard({ item, previewBg, onRemove, onDownload, onCom
           {item.file.name}
         </div>
         <div className={styles.sizeRow}>
-          {formatMeta && (
-            <span className={`${styles.format} ${styles[formatMeta.className]}`}>
-              {formatMeta.label}
-            </span>
-          )}
-          <span title={messages.image.original}>{formatBytes(item.originalSize)}</span>
-          <span className={styles.arrow}>→</span>
+          <span className={styles.sizeLeft}>
+            {formatMeta && (
+              <span className={`${styles.format} ${styles[formatMeta.className]}`}>
+                {formatMeta.label}
+              </span>
+            )}
+            <span title={messages.image.original}>{formatBytes(item.originalSize)}</span>
+          </span>
           <span className={styles.sizeCompressed} title={messages.image.compressed}>
             {result ? formatBytes(result.size) : '--'}
           </span>
