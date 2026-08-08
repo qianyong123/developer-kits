@@ -6,7 +6,6 @@ export const messages = {
     navImage: '图片压缩',
     navSvg: 'SVG 压缩',
     navJson: 'JSON 工具',
-    navOnline: '在线',
   },
   json: {
     title: 'JSON 工具',

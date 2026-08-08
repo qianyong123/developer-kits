@@ -18,9 +18,8 @@ const NAV_ITEMS: Array<{
   label: string;
   icon: IconType;
   end?: boolean;
-  online?: boolean;
 }> = [
-  { to: '/', label: messages.app.navImage, icon: ImageIcon, end: true, online: true },
+  { to: '/', label: messages.app.navImage, icon: ImageIcon, end: true },
   { to: '/svg', label: messages.app.navSvg, icon: CodeIcon },
   { to: '/json', label: messages.app.navJson, icon: BracesIcon },
 ];
@@ -44,7 +43,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className={styles.toolset}>{messages.app.toolset}</div>
 
         <nav className={styles.nav}>
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end, online }) => (
+          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -56,7 +55,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
             >
               <Icon size={17} />
               <span className={styles.linkLabel}>{label}</span>
-              {online && <span className={styles.onlineBadge}>{messages.app.navOnline}</span>}
             </NavLink>
           ))}
         </nav>
