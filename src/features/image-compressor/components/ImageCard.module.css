@@ -266,21 +266,27 @@
 }
 
 .downloadAction {
-  color: var(--accent);
+  background: #f5f7fc;
+  border-color: transparent;
+  color: #334155;
 }
 
 .downloadAction:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  background: #e8ecf7;
+  color: var(--accent);
+  border-color: transparent;
 }
 
 .compareAction {
-  color: var(--text-secondary);
+  background: #f5f7fc;
+  border-color: transparent;
+  color: #334155;
 }
 
 .compareAction:hover:not(:disabled) {
-  border-color: var(--border);
+  background: #e8ecf7;
   color: var(--accent);
+  border-color: transparent;
 }
 
 .remove {
