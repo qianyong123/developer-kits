@@ -61,30 +61,42 @@ export default function SettingsPanel({
 
   return (
     <div className={styles.panel}>
-      <div className={styles.titleRow}>
-        <div>
-          <h3 className={styles.title}>{messages.image.settings}</h3>
-          {!collapsed && <p className={styles.subtitle}>{messages.image.settingsSubtitle}</p>}
-        </div>
-        <div className={styles.titleActions}>
-          <button type="button" className={styles.resetBtn} onClick={onReset}>
-            {messages.image.reset}
-          </button>
+      {collapsed ? (
+        <div className={styles.collapsedBar}>
           <button
             type="button"
-            className={`${styles.collapseBtn} ${collapsed ? styles.collapsed : ''}`}
+            className={styles.collapseBtn}
             onClick={onToggleCollapse}
-            title={collapsed ? messages.image.expandSettings : messages.image.collapseSettings}
-            aria-label={collapsed ? messages.image.expandSettings : messages.image.collapseSettings}
-            aria-expanded={!collapsed}
+            title={messages.image.expandSettings}
+            aria-label={messages.image.expandSettings}
           >
-            <ChevronDownIcon size={15} />
+            <ChevronDownIcon size={16} className={styles.unfoldIcon} />
           </button>
+          <span className={styles.collapsedLabel}>{messages.image.settings}</span>
         </div>
-      </div>
-
-      {!collapsed && (
+      ) : (
         <>
+          <div className={styles.titleRow}>
+            <div>
+              <h3 className={styles.title}>{messages.image.settings}</h3>
+              <p className={styles.subtitle}>{messages.image.settingsSubtitle}</p>
+            </div>
+            <div className={styles.titleActions}>
+              <button type="button" className={styles.resetBtn} onClick={onReset}>
+                {messages.image.reset}
+              </button>
+              <button
+                type="button"
+                className={styles.collapseBtn}
+                onClick={onToggleCollapse}
+                title={messages.image.collapseSettings}
+                aria-label={messages.image.collapseSettings}
+              >
+                <ChevronDownIcon size={15} className={styles.foldIcon} />
+              </button>
+            </div>
+          </div>
+
           <div className={styles.field}>
             <div className={styles.labelRow}>
               <span className={styles.label}>{messages.image.quality}</span>

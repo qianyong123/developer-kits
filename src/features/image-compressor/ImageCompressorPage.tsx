@@ -287,45 +287,48 @@ export default function ImageCompressorPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.columns}>
-        <div className={styles.mainCol}>
-          <header className={styles.header}>
+      <header className={styles.header}>
+        <div className={styles.headerTop}>
+          <div className={styles.headerLeft}>
             <h1>{messages.image.title}</h1>
             <p className={styles.subtitle}>{messages.image.subtitle}</p>
+          </div>
+          <div className={styles.toolbar}>
+            <button
+              className="btn"
+              disabled={busy || !items.some((it) => it.status !== 'unsupported')}
+              onClick={() => void startCompress()}
+            >
+              <RefreshIcon size={14} />
+              {messages.image.recompress}
+            </button>
+            <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
+              <TrashIcon size={14} />
+              {messages.image.clearAll}
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={zipping || resultCount === 0}
+              onClick={() => void downloadAll()}
+            >
+              <DownloadIcon size={14} />
+              {zipping ? messages.image.zipping : messages.image.downloadAll}
+            </button>
+          </div>
+        </div>
 
-            {notice && (
-              <div className={styles.notice}>
-                <span>{notice}</span>
-                <button className={styles.noticeClose} onClick={() => setNotice(null)}>
-                  ✕
-                </button>
-              </div>
-            )}
+        {notice && (
+          <div className={styles.notice}>
+            <span>{notice}</span>
+            <button className={styles.noticeClose} onClick={() => setNotice(null)}>
+              ✕
+            </button>
+          </div>
+        )}
+      </header>
 
-            <div className={styles.toolbar}>
-              <button
-                className="btn"
-                disabled={busy || !items.some((it) => it.status !== 'unsupported')}
-                onClick={() => void startCompress()}
-              >
-                <RefreshIcon size={14} />
-                {messages.image.recompress}
-              </button>
-              <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
-                <TrashIcon size={14} />
-                {messages.image.clearAll}
-              </button>
-              <button
-                className={`btn btn-primary ${styles.toolbarPrimary}`}
-                disabled={zipping || resultCount === 0}
-                onClick={() => void downloadAll()}
-              >
-                <DownloadIcon size={14} />
-                {zipping ? messages.image.zipping : messages.image.downloadAll}
-              </button>
-            </div>
-          </header>
-
+      <div className={styles.columns}>
+        <div className={styles.mainCol}>
           <FileDropZone
             accept=".jpg, .jpeg, .png, .webp, .gif, .bmp, .svg, .avif, .ico, .tiff, .heic, .heif"
             pickTypes={IMAGE_PICK_TYPES}
@@ -401,7 +404,11 @@ export default function ImageCompressorPage() {
         {mobileSettingsOpen && (
           <div className={styles.scrim} onClick={() => setMobileSettingsOpen(false)} />
         )}
-        <aside className={`${styles.settings} ${mobileSettingsOpen ? styles.settingsOpen : ''}`}>
+        <aside
+          className={`${styles.settings} ${mobileSettingsOpen ? styles.settingsOpen : ''} ${
+            !mobileSettingsOpen && settingsCollapsed ? styles.settingsCollapsed : ''
+          }`}
+        >
           <SettingsPanel
             settings={settings}
             onChange={setSettings}
