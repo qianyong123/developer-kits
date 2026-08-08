@@ -432,16 +432,6 @@ export default function ImageCompressorPage() {
             settings={settings}
             onChange={setSettings}
             onReset={() => setSettings(DEFAULT_SETTINGS)}
-            onCompress={() => {
-              setMobileSettingsOpen(false);
-              void startCompress();
-            }}
-            pendingCount={items.filter((it) => it.status !== 'unsupported').length}
-            totals={{
-              count: doneItems.length,
-              original: totalOriginal,
-              compressed: totalCompressed,
-            }}
             collapsed={mobileSettingsOpen ? false : settingsCollapsed}
             onToggleCollapse={() => setSettingsCollapsed((v) => !v)}
           />

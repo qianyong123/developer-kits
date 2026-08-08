@@ -1,7 +1,6 @@
 import { messages } from '../../../shared/i18n/zh';
-import { ArrowRightIcon, ChevronDownIcon } from '../../../shared/components/Icons';
+import { ChevronDownIcon } from '../../../shared/components/Icons';
 import HelpTip from '../../../shared/components/HelpTip/HelpTip';
-import { formatBytes, ratioPercent } from '../../../shared/lib/format';
 import type { FormatOption } from '../lib/encoders';
 import type { CompressSettings } from '../lib/types';
 import styles from './SettingsPanel.module.css';
@@ -32,9 +31,6 @@ interface Props {
   settings: CompressSettings;
   onChange: (settings: CompressSettings) => void;
   onReset: () => void;
-  onCompress: () => void;
-  pendingCount: number;
-  totals: { count: number; original: number; compressed: number };
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
@@ -43,21 +39,10 @@ export default function SettingsPanel({
   settings,
   onChange,
   onReset,
-  onCompress,
-  pendingCount,
-  totals,
   collapsed,
   onToggleCollapse,
 }: Props) {
   const set = (patch: Partial<CompressSettings>) => onChange({ ...settings, ...patch });
-
-  const saved = totals.original - totals.compressed;
-  const ratio =
-    totals.count > 0 && totals.original > 0
-      ? ratioPercent(totals.original, totals.compressed)
-      : '0%';
-  const savedPct =
-    totals.original > 0 ? Math.min(100, Math.max(0, (saved / totals.original) * 100)) : 0;
 
   return (
     <div className={styles.panel}>
@@ -210,30 +195,6 @@ export default function SettingsPanel({
             </div>
           </div>
 
-          <div className={styles.saveCard}>
-            <div className={styles.saveHeader}>
-              <span className={styles.saveLabel}>{messages.image.estimatedSave}</span>
-              <strong className={styles.saveValue}>{formatBytes(Math.max(0, saved))}</strong>
-              <strong className={styles.saveRatio}>{ratio}</strong>
-            </div>
-            <div className={styles.saveBar}>
-              <div className={styles.saveFill} style={{ width: `${savedPct}%` }} />
-            </div>
-            <div className={styles.saveMeta}>
-              {messages.image.saveRate}: {formatBytes(totals.original)} →{' '}
-              {formatBytes(totals.compressed)}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className={styles.compressBtn}
-            disabled={pendingCount === 0}
-            onClick={onCompress}
-          >
-            {messages.image.compressNow(pendingCount)}
-            <ArrowRightIcon size={16} />
-          </button>
         </>
       )}
     </div>
