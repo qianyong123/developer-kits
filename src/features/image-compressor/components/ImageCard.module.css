@@ -63,20 +63,8 @@
   letter-spacing: 0.3px;
   padding: 3px 7px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
-}
-
-.formatPng {
-  color: var(--success-strong);
-}
-
-.formatJpeg {
-  color: var(--warning);
-}
-
-.formatWebp {
-  color: var(--accent);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
 }
 
 .info {

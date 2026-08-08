@@ -60,7 +60,8 @@ export default function ImageCard({ item, previewBg, onRemove, onDownload, onCom
   const ratio = result ? ratioPercent(item.originalSize, result.size) : null;
   const growing = result ? result.size > item.originalSize : false;
   const note = noteText(result?.note);
-  const formatMeta = FORMAT_META[result ? result.format : inputFormatKey(item.file.type)];
+  // 右上角与信息行展示图片本身的原始格式，而非压缩后的格式
+  const formatMeta = FORMAT_META[inputFormatKey(item.file.type)];
 
   // 小图/略大于展示区的图：contain 放大居中，不裁切；明显更大的照片类：裁切铺满
   const handleThumbLoad = () => {
@@ -88,9 +89,7 @@ export default function ImageCard({ item, previewBg, onRemove, onDownload, onCom
           onLoad={handleThumbLoad}
         />
         {formatMeta && (
-          <span className={`${styles.previewTag} ${styles[formatMeta.className]}`}>
-            {formatMeta.label}
-          </span>
+          <span className={styles.previewTag}>{formatMeta.label}</span>
         )}
       </div>
       <div className={styles.info}>
