@@ -96,18 +96,29 @@ export default function ImageCompressorPage() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   const genRef = useRef(0);
+  // 待压缩目标：null = 全部（设置变更/手动压缩），id 列表 = 仅新增的图片
+  const compressTargetRef = useRef<string[] | null>(null);
 
   const updateItem = useCallback((id: string, patch: Partial<ImageItem>) => {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }, []);
 
-  const startCompress = useCallback(async () => {
+  const startCompress = useCallback(async (targetIds?: string[]) => {
     const current = itemsRef.current;
-    if (current.length === 0) return;
+    const idSet = targetIds ? new Set(targetIds) : null;
+    // 目标 = 指定 id（含正在进行中的项），未指定则为全部
+    const targets = current.filter((it) => {
+      if (it.status === 'unsupported') return false;
+      if (!idSet) return true;
+      return idSet.has(it.id) || it.status === 'pending' || it.status === 'processing';
+    });
+    if (targets.length === 0) return;
+    const targetSet = new Set(targets.map((it) => it.id));
 
     const gen = ++genRef.current;
     // unsupported（如 SVG）保留在列表中，不参与压缩
     const snapshot = current.map((it) => {
+      if (!targetSet.has(it.id)) return it;
       if (it.status === 'unsupported') return it;
       if (it.result) URL.revokeObjectURL(it.result.url);
       return { ...it, status: 'pending' as const, result: undefined, error: undefined, progress: undefined };
@@ -115,10 +126,9 @@ export default function ImageCompressorPage() {
     setItems(snapshot);
     setBusy(true);
     const runSettings = settingsRef.current;
-    const runnable = snapshot.filter((it) => it.status !== 'unsupported');
 
     await runPool(
-      runnable,
+      targets,
       async (item) => {
         if (genRef.current !== gen) return;
         updateItem(item.id, { status: 'processing', progress: 0 });
@@ -147,12 +157,17 @@ export default function ImageCompressorPage() {
   useEffect(() => {
     if (!needCompress) return;
     setNeedCompress(false);
-    void startCompress();
+    const target = compressTargetRef.current;
+    compressTargetRef.current = null;
+    void startCompress(target ?? undefined);
   }, [needCompress, startCompress]);
 
   useDebouncedEffect(
     () => {
-      if (itemsRef.current.length > 0) setNeedCompress(true);
+      if (itemsRef.current.length > 0) {
+        compressTargetRef.current = null; // 设置变更：全部重新压缩
+        setNeedCompress(true);
+      }
     },
     [JSON.stringify(settings)],
     300,
@@ -195,15 +210,16 @@ export default function ImageCompressorPage() {
       })),
     );
 
+    const validItems: ImageItem[] = validWithAlpha.map(({ file, hasTransparency }) => ({
+      id: nextId(),
+      file,
+      originalUrl: URL.createObjectURL(file),
+      originalSize: file.size,
+      hasTransparency,
+      status: 'pending' as const,
+    }));
     const created: ImageItem[] = [
-      ...validWithAlpha.map(({ file, hasTransparency }) => ({
-        id: nextId(),
-        file,
-        originalUrl: URL.createObjectURL(file),
-        originalSize: file.size,
-        hasTransparency,
-        status: 'pending' as const,
-      })),
+      ...validItems,
       ...unsupported.map((file) => ({
         id: nextId(),
         file,
@@ -215,7 +231,10 @@ export default function ImageCompressorPage() {
     ];
     if (created.length === 0) return;
     setItems((prev) => [...prev, ...created]);
-    if (valid.length > 0) setNeedCompress(true);
+    if (validItems.length > 0) {
+      compressTargetRef.current = validItems.map((it) => it.id); // 只压缩新上传的图片
+      setNeedCompress(true);
+    }
   }, []);
 
   const removeItem = useCallback((id: string) => {

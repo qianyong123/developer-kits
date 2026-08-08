@@ -60,6 +60,8 @@ export default function SvgCompressorPage() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   const genRef = useRef(0);
+  // 待压缩目标：null = 全部（设置变更/手动压缩），id 列表 = 仅新增的文件
+  const compressTargetRef = useRef<string[] | null>(null);
 
   useEffect(() => () => disposeWorkerPool(), []);
 
@@ -67,12 +69,19 @@ export default function SvgCompressorPage() {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }, []);
 
-  const startCompress = useCallback(async () => {
+  const startCompress = useCallback(async (targetIds?: string[]) => {
     const current = itemsRef.current;
-    if (current.length === 0) return;
+    const idSet = targetIds ? new Set(targetIds) : null;
+    const targets = current.filter((it) => {
+      if (!idSet) return true;
+      return idSet.has(it.id) || it.status === 'pending' || it.status === 'processing';
+    });
+    if (targets.length === 0) return;
+    const targetSet = new Set(targets.map((it) => it.id));
 
     const gen = ++genRef.current;
     const snapshot = current.map((it) => {
+      if (!targetSet.has(it.id)) return it;
       if (it.result) URL.revokeObjectURL(it.result.previewUrl);
       return { ...it, status: 'pending' as const, result: undefined, error: undefined };
     });
@@ -81,7 +90,7 @@ export default function SvgCompressorPage() {
     const runSettings = settingsRef.current;
 
     await Promise.all(
-      snapshot.map(async (item) => {
+      targets.map(async (item) => {
         if (genRef.current !== gen) return;
         updateItem(item.id, { status: 'processing' });
         try {
@@ -106,12 +115,17 @@ export default function SvgCompressorPage() {
   useEffect(() => {
     if (!needCompress) return;
     setNeedCompress(false);
-    void startCompress();
+    const target = compressTargetRef.current;
+    compressTargetRef.current = null;
+    void startCompress(target ?? undefined);
   }, [needCompress, startCompress]);
 
   useDebouncedEffect(
     () => {
-      if (itemsRef.current.length > 0) setNeedCompress(true);
+      if (itemsRef.current.length > 0) {
+        compressTargetRef.current = null; // 设置变更：全部重新压缩
+        setNeedCompress(true);
+      }
     },
     [JSON.stringify(settings)],
     300,
@@ -153,6 +167,7 @@ export default function SvgCompressorPage() {
     if (created.length === 0) return;
 
     setItems((prev) => [...prev, ...created]);
+    compressTargetRef.current = created.map((it) => it.id); // 只压缩新上传的文件
     setNeedCompress(true);
   }, []);
 
