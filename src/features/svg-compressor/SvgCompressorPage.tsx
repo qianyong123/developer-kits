@@ -166,7 +166,7 @@ export default function SvgCompressorPage() {
     if (notices.length > 0) setNotice(notices.join('；'));
     if (created.length === 0) return;
 
-    setItems((prev) => [...prev, ...created]);
+    setItems((prev) => [...created, ...prev]); // 最新上传的排在最前
     compressTargetRef.current = created.map((it) => it.id); // 只压缩新上传的文件
     setNeedCompress(true);
   }, []);

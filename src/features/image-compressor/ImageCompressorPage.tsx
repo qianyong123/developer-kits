@@ -230,7 +230,7 @@ export default function ImageCompressorPage() {
       })),
     ];
     if (created.length === 0) return;
-    setItems((prev) => [...prev, ...created]);
+    setItems((prev) => [...created, ...prev]); // 最新上传的排在最前
     if (validItems.length > 0) {
       compressTargetRef.current = validItems.map((it) => it.id); // 只压缩新上传的图片
       setNeedCompress(true);
