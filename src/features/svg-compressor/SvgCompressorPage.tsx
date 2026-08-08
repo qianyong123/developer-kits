@@ -323,7 +323,7 @@ export default function SvgCompressorPage() {
                     <SvgCard
                       key={it.id}
                       item={it}
-                      previewBg="white"
+                      previewBg={it.hasTransparency ? 'checker' : 'white'}
                       onRemove={removeItem}
                       onDownload={downloadOne}
                       onCompare={setCompareId}
@@ -356,7 +356,7 @@ export default function SvgCompressorPage() {
         <SvgCompareDialog
           item={compareItem}
           onClose={() => setCompareId(null)}
-          previewBg="white"
+          previewBg={compareItem.hasTransparency ? 'checker' : 'white'}
         />
       )}
     </div>
