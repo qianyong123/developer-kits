@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { messages } from '../../shared/i18n/zh';
+import { DownloadIcon, RefreshIcon, TrashIcon } from '../../shared/components/Icons';
 import FileDropZone from '../../shared/components/FileDropZone/FileDropZone';
 import { useDebouncedEffect } from '../../shared/hooks/useDebounced';
 import { downloadUrl } from '../../shared/lib/download';
@@ -52,6 +53,7 @@ export default function SvgCompressorPage() {
   const [compareId, setCompareId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -231,8 +233,30 @@ export default function SvgCompressorPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>{messages.svg.title}</h1>
-        <p className={styles.subtitle}>{messages.svg.subtitle}</p>
+        <div className={styles.headerTop}>
+          <div className={styles.headerLeft}>
+            <h1>{messages.svg.title}</h1>
+            <p className={styles.subtitle}>{messages.svg.subtitle}</p>
+          </div>
+          <div className={styles.toolbar}>
+            <button className="btn" disabled={busy || items.length === 0} onClick={() => void startCompress()}>
+              <RefreshIcon size={14} />
+              {messages.svg.recompress}
+            </button>
+            <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
+              <TrashIcon size={14} />
+              {messages.svg.clearAll}
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={zipping || resultCount === 0}
+              onClick={() => void downloadAll()}
+            >
+              <DownloadIcon size={14} />
+              {zipping ? messages.svg.zipping : messages.svg.downloadAll}
+            </button>
+          </div>
+        </div>
 
         {notice && (
           <div className={styles.notice}>
@@ -242,91 +266,90 @@ export default function SvgCompressorPage() {
             </button>
           </div>
         )}
-
-        <div className={styles.toolbar}>
-          <button className="btn" disabled={busy || items.length === 0} onClick={() => void startCompress()}>
-            {messages.svg.recompress}
-          </button>
-          <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
-            {messages.svg.clearAll}
-          </button>
-          <button
-            className={`btn btn-primary ${styles.toolbarPrimary}`}
-            disabled={zipping || resultCount === 0}
-            onClick={() => void downloadAll()}
-          >
-            {zipping ? messages.svg.zipping : messages.svg.downloadAll}
-          </button>
-        </div>
       </header>
 
-      <FileDropZone
-        accept=".svg,.svgz"
-        pickTypes={SVG_PICK_TYPES}
-        dragTitle={messages.svg.dropTitle}
-        tapTitle={messages.svg.tapTitle}
-        hint={messages.svg.dropHint}
-        onFiles={addFiles}
-      />
+      <div className={styles.columns}>
+        <div className={styles.mainCol}>
+          <FileDropZone
+            accept=".svg,.svgz"
+            pickTypes={SVG_PICK_TYPES}
+            dragTitle={messages.svg.dropTitle}
+            tapTitle={messages.svg.tapTitle}
+            hint={messages.svg.dropHint}
+            features={[messages.svg.featureLocal]}
+            onFiles={addFiles}
+          />
 
-      <button
-        className={styles.mobileSettingsToggle}
-        onClick={() => setMobileSettingsOpen((v) => !v)}
-        aria-expanded={mobileSettingsOpen}
-      >
-        {messages.svg.settings}
-        {busy ? ` · ${overallPct}%` : ''}
-      </button>
+          <button
+            className={styles.mobileSettingsToggle}
+            onClick={() => setMobileSettingsOpen((v) => !v)}
+            aria-expanded={mobileSettingsOpen}
+          >
+            {messages.svg.settings}
+            {busy ? ` · ${overallPct}%` : ''}
+          </button>
 
-      <div className={styles.body}>
-        <aside className={`${styles.settings} ${mobileSettingsOpen ? styles.settingsOpen : ''}`}>
-          <SvgSettingsPanel settings={settings} onChange={setSettings} />
+          <section className={styles.list}>
+            {items.length > 0 && (
+              <>
+                {busy && (
+                  <div className={styles.progressBar}>
+                    <div className={styles.progressFill} style={{ width: `${overallPct}%` }} />
+                    <span>
+                      {messages.svg.processed} {finishedCount} {messages.svg.of} {items.length} ·{' '}
+                      {overallPct}%
+                    </span>
+                  </div>
+                )}
+                {doneItems.length > 0 && (
+                  <div className={styles.summary}>
+                    <span>
+                      {messages.svg.summary} {doneItems.length} {messages.svg.files} ·{' '}
+                      {messages.svg.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
+                      {messages.svg.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
+                      {messages.svg.totalRatio}:{' '}
+                      <b
+                        className={
+                          totalCompressed > totalOriginal ? styles.summaryBad : styles.summaryGood
+                        }
+                      >
+                        {ratioPercent(totalOriginal, totalCompressed)}
+                      </b>
+                    </span>
+                  </div>
+                )}
+                <div className={styles.grid}>
+                  {items.map((it) => (
+                    <SvgCard
+                      key={it.id}
+                      item={it}
+                      previewBg={it.hasTransparency ? 'checker' : 'white'}
+                      onRemove={removeItem}
+                      onDownload={downloadOne}
+                      onCompare={setCompareId}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+
+        {mobileSettingsOpen && (
+          <div className={styles.scrim} onClick={() => setMobileSettingsOpen(false)} />
+        )}
+        <aside
+          className={`${styles.settings} ${mobileSettingsOpen ? styles.settingsOpen : ''} ${
+            !mobileSettingsOpen && settingsCollapsed ? styles.settingsCollapsed : ''
+          }`}
+        >
+          <SvgSettingsPanel
+            settings={settings}
+            onChange={setSettings}
+            collapsed={mobileSettingsOpen ? false : settingsCollapsed}
+            onToggleCollapse={() => setSettingsCollapsed((v) => !v)}
+          />
         </aside>
-
-        <section className={styles.list}>
-          {items.length > 0 && (
-            <>
-              {busy && (
-                <div className={styles.progressBar}>
-                  <div className={styles.progressFill} style={{ width: `${overallPct}%` }} />
-                  <span>
-                    {messages.svg.processed} {finishedCount} {messages.svg.of} {items.length} ·{' '}
-                    {overallPct}%
-                  </span>
-                </div>
-              )}
-              {doneItems.length > 0 && (
-                <div className={styles.summary}>
-                  <span>
-                    {messages.svg.summary} {doneItems.length} {messages.svg.files} ·{' '}
-                    {messages.svg.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
-                    {messages.svg.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
-                    {messages.svg.totalRatio}:{' '}
-                    <b
-                      className={
-                        totalCompressed > totalOriginal ? styles.summaryBad : styles.summaryGood
-                      }
-                    >
-                      {ratioPercent(totalOriginal, totalCompressed)}
-                    </b>
-                  </span>
-                </div>
-              )}
-              <div className={styles.grid}>
-                {items.map((it) => (
-                  <SvgCard
-                    key={it.id}
-                    item={it}
-                    previewBg={it.hasTransparency ? 'checker' : 'white'}
-                    onRemove={removeItem}
-                    onDownload={downloadOne}
-                    onCompare={setCompareId}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </section>
       </div>
 
       {compareItem && (
