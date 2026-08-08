@@ -56,7 +56,7 @@
 .previewTag {
   position: absolute;
   top: 8px;
-  left: 8px;
+  right: 8px;
   z-index: 1;
   font-size: 10px;
   font-weight: 700;
