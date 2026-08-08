@@ -389,7 +389,7 @@ export default function ImageCompressorPage() {
                     <ImageCard
                       key={it.id}
                       item={it}
-                      previewBg={it.hasTransparency ? 'checker' : 'white'}
+                      previewBg="white"
                       onRemove={removeItem}
                       onDownload={downloadOne}
                       onCompare={setCompareId}
@@ -433,7 +433,7 @@ export default function ImageCompressorPage() {
         <CompareDialog
           item={compareItem}
           onClose={() => setCompareId(null)}
-          previewBg={compareItem.hasTransparency ? 'checker' : 'white'}
+          previewBg="white"
         />
       )}
     </div>
