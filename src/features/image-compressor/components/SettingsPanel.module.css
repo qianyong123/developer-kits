@@ -7,6 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
 }
 
 .titleRow {
@@ -72,6 +73,35 @@
   background: var(--bg-subtle);
 }
 
+.collapseHandle {
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 46px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--shadow-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  z-index: 3;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.collapseHandle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--bg-subtle);
+}
+
 .foldIcon {
   transform: rotate(-90deg);
 }
@@ -94,6 +124,12 @@
   font-weight: 600;
   color: var(--text-secondary);
   letter-spacing: 2px;
+}
+
+@media (max-width: 900px) {
+  .collapseHandle {
+    display: none;
+  }
 }
 
 .field {

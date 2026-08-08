@@ -76,6 +76,16 @@ export default function SettingsPanel({
         </div>
       ) : (
         <>
+          <button
+            type="button"
+            className={styles.collapseHandle}
+            onClick={onToggleCollapse}
+            title={messages.image.collapseSettings}
+            aria-label={messages.image.collapseSettings}
+          >
+            <ChevronDownIcon size={15} className={styles.foldIcon} />
+          </button>
+
           <div className={styles.titleRow}>
             <div>
               <h3 className={styles.title}>{messages.image.settings}</h3>
@@ -84,15 +94,6 @@ export default function SettingsPanel({
             <div className={styles.titleActions}>
               <button type="button" className={styles.resetBtn} onClick={onReset}>
                 {messages.image.reset}
-              </button>
-              <button
-                type="button"
-                className={styles.collapseBtn}
-                onClick={onToggleCollapse}
-                title={messages.image.collapseSettings}
-                aria-label={messages.image.collapseSettings}
-              >
-                <ChevronDownIcon size={15} className={styles.foldIcon} />
               </button>
             </div>
           </div>
