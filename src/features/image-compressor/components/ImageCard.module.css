@@ -1,20 +1,24 @@
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 12px;
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
 /* 统一图片展示区：固定高度预览，大图裁切铺满，小图放大居中 */
 .thumbWrap {
+  position: relative;
   width: 100%;
-  height: 200px;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border-radius: 8px;
 }
 
 .thumbWhite {
@@ -24,8 +28,8 @@
 .thumbChecker {
   background-color: #fff;
   background-image:
-    linear-gradient(45deg, #d9d9d9 25%, transparent 25%, transparent 75%, #d9d9d9 75%),
-    linear-gradient(45deg, #d9d9d9 25%, transparent 25%, transparent 75%, #d9d9d9 75%);
+    linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%),
+    linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%);
   background-size: 16px 16px;
   background-position:
     0 0,
@@ -49,84 +53,88 @@
   object-fit: contain;
 }
 
+.previewTag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+}
+
+.formatPng {
+  color: var(--success-strong);
+}
+
+.formatJpeg {
+  color: var(--warning);
+}
+
+.formatWebp {
+  color: var(--accent);
+}
+
 .info {
-  padding: 10px 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex: 1;
 }
 
 .name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  color: #374151;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.rowLeft {
+.sizeRow {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
-}
-
-.format {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.3px;
-}
-
-.formatPng {
-  background: rgba(62, 207, 110, 0.15);
-  color: var(--success);
-}
-
-.formatJpeg {
-  background: rgba(230, 162, 60, 0.15);
-  color: var(--warning);
-}
-
-.formatWebp {
-  background: rgba(79, 140, 255, 0.15);
-  color: var(--accent);
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
   font-size: 12px;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
-.sizeCompressed {
+.format {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+  letter-spacing: 0.3px;
+}
+
+.formatPng {
+  background: var(--success-soft);
+  color: var(--success-strong);
+}
+
+.formatJpeg {
+  background: rgba(230, 162, 60, 0.14);
+  color: var(--warning);
+}
+
+.formatWebp {
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
-.ratioBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
-  border-radius: 999px;
+.arrow {
+  color: var(--text-faint);
+}
+
+.sizeCompressed {
+  color: var(--text);
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.ratioSaved {
-  background: rgba(62, 207, 110, 0.15);
-  color: var(--success);
-}
-
-.ratioGrown {
-  background: rgba(255, 107, 107, 0.15);
-  color: var(--danger);
 }
 
 .statusRow {
@@ -138,42 +146,74 @@
   font-size: 12px;
 }
 
+.statusLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .badge {
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
+  flex-shrink: 0;
 }
 
 .pending {
-  background: rgba(154, 163, 178, 0.15);
+  background: rgba(156, 163, 175, 0.18);
   color: var(--text-secondary);
 }
 
 .processing {
-  background: rgba(79, 140, 255, 0.15);
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
 .done {
-  background: rgba(62, 207, 110, 0.15);
-  color: var(--success);
+  background: var(--success-soft);
+  color: var(--success-strong);
 }
 
 .error {
-  background: rgba(255, 107, 107, 0.15);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
 .unsupported {
-  background: rgba(230, 162, 60, 0.15);
+  background: rgba(230, 162, 60, 0.14);
   color: var(--warning);
 }
 
 .quality {
-  color: var(--text-secondary);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 .errorText {
+  color: var(--danger);
+  font-size: 11px;
+}
+
+.ratioBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.ratioSaved {
+  background: var(--success-soft);
+  color: var(--success-strong);
+}
+
+.ratioGrown {
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
@@ -185,7 +225,7 @@
 .miniBar {
   height: 4px;
   border-radius: 999px;
-  background: var(--bg-panel);
+  background: var(--bg-subtle);
   overflow: hidden;
 }
 
@@ -199,22 +239,20 @@
 .actions {
   display: flex;
   gap: 8px;
-  padding: 0 12px 12px;
 }
 
 .action {
   flex: 1;
-  background: var(--bg-panel);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: var(--radius-sm);
+  border-radius: 7px;
   padding: 6px 0;
   font-size: 12px;
-  transition: border-color 0.15s;
-}
-
-.action:hover:not(:disabled) {
-  border-color: var(--accent);
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .action:disabled {
@@ -222,9 +260,27 @@
   cursor: not-allowed;
 }
 
-.remove {
-  flex: 0 0 34px;
+.downloadAction {
+  color: var(--accent);
+}
+
+.downloadAction:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.compareAction {
   color: var(--text-secondary);
+}
+
+.compareAction:hover:not(:disabled) {
+  border-color: var(--border);
+  color: var(--accent);
+}
+
+.remove {
+  flex: 0 0 32px;
+  color: var(--text-faint);
 }
 
 .remove:hover:not(:disabled) {
@@ -232,38 +288,28 @@
   color: var(--danger);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 900px) {
+  .thumbWrap {
+    height: 130px;
+  }
+}
+
+@media (max-width: 640px) {
   .info {
-    padding: 8px 10px 6px;
-    gap: 3px;
+    gap: 4px;
   }
 
   .name {
-    font-size: 12px;
+    font-size: 13px;
   }
 
-  .format {
-    font-size: 9px;
-    padding: 1px 5px;
-  }
-
-  .row,
+  .sizeRow,
   .statusRow {
     font-size: 11px;
   }
 
-  .badge {
-    font-size: 10px;
-    padding: 1px 6px;
-  }
-
   .actions {
     gap: 6px;
-    padding: 0 10px 10px;
-  }
-
-  .thumbWrap {
-    height: 170px;
   }
 
   .action {

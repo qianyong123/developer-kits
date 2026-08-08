@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { messages } from '../../shared/i18n/zh';
+import { DownloadIcon, RefreshIcon, TrashIcon } from '../../shared/components/Icons';
 import FileDropZone from '../../shared/components/FileDropZone/FileDropZone';
 import { useDebouncedEffect } from '../../shared/hooks/useDebounced';
 import { downloadUrl } from '../../shared/lib/download';
@@ -286,6 +287,7 @@ export default function ImageCompressorPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
+        <div className={styles.breadcrumb}>{messages.image.breadcrumb}</div>
         <h1>{messages.image.title}</h1>
         <p className={styles.subtitle}>{messages.image.subtitle}</p>
 
@@ -304,9 +306,11 @@ export default function ImageCompressorPage() {
             disabled={busy || !items.some((it) => it.status !== 'unsupported')}
             onClick={() => void startCompress()}
           >
+            <RefreshIcon size={14} />
             {messages.image.recompress}
           </button>
           <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
+            <TrashIcon size={14} />
             {messages.image.clearAll}
           </button>
           <button
@@ -314,6 +318,7 @@ export default function ImageCompressorPage() {
             disabled={zipping || resultCount === 0}
             onClick={() => void downloadAll()}
           >
+            <DownloadIcon size={14} />
             {zipping ? messages.image.zipping : messages.image.downloadAll}
           </button>
         </div>
@@ -325,7 +330,7 @@ export default function ImageCompressorPage() {
         dragTitle={messages.image.dropTitle}
         tapTitle={messages.image.tapTitle}
         hint={messages.image.dropHint}
-        icon="🖼️"
+        features={[messages.image.featureLocal, messages.image.featureExif]}
         filter={(files) => files.filter((f) => f.type.startsWith('image/'))}
         onFiles={addFiles}
       />
@@ -340,10 +345,6 @@ export default function ImageCompressorPage() {
       </button>
 
       <div className={styles.body}>
-        <aside className={`${styles.settings} ${mobileSettingsOpen ? styles.settingsOpen : ''}`}>
-          <SettingsPanel settings={settings} onChange={setSettings} />
-        </aside>
-
         <section className={styles.list}>
           {items.length > 0 && (
             <>
@@ -394,6 +395,27 @@ export default function ImageCompressorPage() {
             </>
           )}
         </section>
+
+        {mobileSettingsOpen && (
+          <div className={styles.scrim} onClick={() => setMobileSettingsOpen(false)} />
+        )}
+        <aside className={`${styles.settings} ${mobileSettingsOpen ? styles.settingsOpen : ''}`}>
+          <SettingsPanel
+            settings={settings}
+            onChange={setSettings}
+            onReset={() => setSettings(DEFAULT_SETTINGS)}
+            onCompress={() => {
+              setMobileSettingsOpen(false);
+              void startCompress();
+            }}
+            pendingCount={items.filter((it) => it.status !== 'unsupported').length}
+            totals={{
+              count: doneItems.length,
+              original: totalOriginal,
+              compressed: totalCompressed,
+            }}
+          />
+        </aside>
       </div>
 
       {compareItem && (

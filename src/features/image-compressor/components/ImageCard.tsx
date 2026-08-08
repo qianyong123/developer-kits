@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { messages } from '../../../shared/i18n/zh';
+import { CloseIcon, DownloadIcon } from '../../../shared/components/Icons';
 import { formatBytes, ratioPercent } from '../../../shared/lib/format';
 import type { PreviewBg } from '../../../shared/lib/hasTransparency';
 import type { ImageItem } from '../lib/types';
@@ -86,26 +87,30 @@ export default function ImageCard({ item, previewBg, onRemove, onDownload, onCom
           loading="lazy"
           onLoad={handleThumbLoad}
         />
+        {formatMeta && (
+          <span className={`${styles.previewTag} ${styles[formatMeta.className]}`}>
+            {formatMeta.label}
+          </span>
+        )}
       </div>
       <div className={styles.info}>
         <div className={styles.name} title={item.file.name}>
           {item.file.name}
         </div>
-        <div className={styles.row}>
-          <span className={styles.rowLeft}>
-            {formatMeta && (
-              <span className={`${styles.format} ${styles[formatMeta.className]}`}>{formatMeta.label}</span>
-            )}
-            <span title={messages.image.original}>{formatBytes(item.originalSize)}</span>
-          </span>
-          {result && (
-            <span className={styles.sizeCompressed} title={messages.image.compressed}>
-              {formatBytes(result.size)}
+        <div className={styles.sizeRow}>
+          {formatMeta && (
+            <span className={`${styles.format} ${styles[formatMeta.className]}`}>
+              {formatMeta.label}
             </span>
           )}
+          <span title={messages.image.original}>{formatBytes(item.originalSize)}</span>
+          <span className={styles.arrow}>→</span>
+          <span className={styles.sizeCompressed} title={messages.image.compressed}>
+            {result ? formatBytes(result.size) : '--'}
+          </span>
         </div>
         <div className={styles.statusRow}>
-          <span className={styles.rowLeft}>
+          <span className={styles.statusLeft}>
             <span className={`${styles.badge} ${styles[item.status]}`}>{STATUS_TEXT[item.status]}</span>
             {result?.qualityUsed !== undefined && (
               <span className={styles.quality} title={messages.image.qualityUsed}>
@@ -134,14 +139,27 @@ export default function ImageCard({ item, previewBg, onRemove, onDownload, onCom
         {note && <div className={styles.note}>{note}</div>}
       </div>
       <div className={styles.actions}>
-        <button className={styles.action} disabled={!result} onClick={() => onDownload(item)}>
+        <button
+          className={`${styles.action} ${styles.downloadAction}`}
+          disabled={!result}
+          onClick={() => onDownload(item)}
+        >
+          <DownloadIcon size={13} />
           {messages.image.download}
         </button>
-        <button className={styles.action} disabled={!result} onClick={() => result && onCompare(item.id)}>
+        <button
+          className={`${styles.action} ${styles.compareAction}`}
+          disabled={!result}
+          onClick={() => result && onCompare(item.id)}
+        >
           {messages.image.compare}
         </button>
-        <button className={`${styles.action} ${styles.remove}`} title={messages.image.remove} onClick={() => onRemove(item.id)}>
-          ✕
+        <button
+          className={`${styles.action} ${styles.remove}`}
+          title={messages.image.remove}
+          onClick={() => onRemove(item.id)}
+        >
+          <CloseIcon size={13} />
         </button>
       </div>
     </div>

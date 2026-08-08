@@ -1,17 +1,19 @@
 import { messages } from '../../../shared/i18n/zh';
+import { ArrowRightIcon } from '../../../shared/components/Icons';
 import HelpTip from '../../../shared/components/HelpTip/HelpTip';
+import { formatBytes, ratioPercent } from '../../../shared/lib/format';
 import type { FormatOption } from '../lib/encoders';
 import type { CompressSettings } from '../lib/types';
 import styles from './SettingsPanel.module.css';
 
-/** 质量预设档位：极致 / 高保真（默认） / 均衡 / 小体积 */
+/** 质量预设档位：极致 / 高保真（默认）/ 均衡 / 小体积 */
 const QUALITY_PRESETS: Array<{ value: number; label: string }> = [
   { value: 95, label: '极致' },
   { value: 80, label: '高保真' },
   { value: 65, label: '标准' },
   { value: 40, label: '紧凑' },
 ];
-/** 压缩比例预设档位：压缩后体积不超过原图的对应比例（原图 = 不主动缩小，仅保证不超过原图） */
+/** 压缩比例预设档位：压缩后体积不超过原图的对应比例（原图 = 不主动缩小，仅保证不超过原图）*/
 const RATIO_PRESETS: Array<{ value: number; label: string }> = [
   { value: 100, label: '原图' },
   { value: 70, label: '70%' },
@@ -29,27 +31,54 @@ const FORMAT_PRESETS: Array<{ value: FormatOption; label: string }> = [
 interface Props {
   settings: CompressSettings;
   onChange: (settings: CompressSettings) => void;
+  onReset: () => void;
+  onCompress: () => void;
+  pendingCount: number;
+  totals: { count: number; original: number; compressed: number };
 }
 
-export default function SettingsPanel({ settings, onChange }: Props) {
+export default function SettingsPanel({
+  settings,
+  onChange,
+  onReset,
+  onCompress,
+  pendingCount,
+  totals,
+}: Props) {
   const set = (patch: Partial<CompressSettings>) => onChange({ ...settings, ...patch });
+
+  const saved = totals.original - totals.compressed;
+  const ratio =
+    totals.count > 0 && totals.original > 0
+      ? ratioPercent(totals.original, totals.compressed)
+      : '0%';
+  const savedPct =
+    totals.original > 0 ? Math.min(100, Math.max(0, (saved / totals.original) * 100)) : 0;
 
   return (
     <div className={styles.panel}>
-      <h3 className={styles.title}>{messages.image.settings}</h3>
+      <div className={styles.titleRow}>
+        <div>
+          <h3 className={styles.title}>{messages.image.settings}</h3>
+          <p className={styles.subtitle}>{messages.image.settingsSubtitle}</p>
+        </div>
+        <button type="button" className={styles.resetBtn} onClick={onReset}>
+          {messages.image.reset}
+        </button>
+      </div>
 
       <div className={styles.field}>
         <div className={styles.labelRow}>
           <span className={styles.label}>{messages.image.quality}</span>
           <HelpTip text={messages.image.settingsHelp.quality} />
         </div>
-        <div className={styles.qualityRow}>
+        <div className={styles.segmentRow}>
           {QUALITY_PRESETS.map((q) => (
             <button
               key={q.value}
               type="button"
               className={
-                q.value === settings.quality ? styles.presetBtnActive : styles.presetBtn
+                q.value === settings.quality ? styles.segmentActive : styles.segment
               }
               onClick={() => set({ quality: q.value })}
             >
@@ -64,13 +93,13 @@ export default function SettingsPanel({ settings, onChange }: Props) {
           <span className={styles.label}>{messages.image.compressRatio}</span>
           <HelpTip text={messages.image.settingsHelp.compressRatio} />
         </div>
-        <div className={styles.qualityRow}>
+        <div className={styles.segmentRow}>
           {RATIO_PRESETS.map((r) => (
             <button
               key={r.value}
               type="button"
               className={
-                r.value === settings.compressRatio ? styles.presetBtnActive : styles.presetBtn
+                r.value === settings.compressRatio ? styles.segmentActive : styles.segment
               }
               onClick={() => set({ compressRatio: r.value })}
             >
@@ -85,13 +114,13 @@ export default function SettingsPanel({ settings, onChange }: Props) {
           <span className={styles.label}>{messages.image.format}</span>
           <HelpTip text={messages.image.settingsHelp.format} />
         </div>
-        <div className={styles.qualityRow}>
+        <div className={styles.segmentRow}>
           {FORMAT_PRESETS.map((f) => (
             <button
               key={f.value}
               type="button"
               className={
-                f.value === settings.format ? styles.presetBtnActive : styles.presetBtn
+                f.value === settings.format ? styles.segmentActive : styles.segment
               }
               onClick={() => set({ format: f.value })}
             >
@@ -101,42 +130,82 @@ export default function SettingsPanel({ settings, onChange }: Props) {
         </div>
       </div>
 
-      <div className={styles.checkRow}>
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={settings.keepMetadata}
-            onChange={(e) => set({ keepMetadata: e.target.checked })}
-          />
-          <span>{messages.image.keepMetadata}</span>
-        </label>
-        <HelpTip text={messages.image.settingsHelp.keepMetadata} />
-      </div>
-      {settings.keepMetadata && settings.format !== 'jpeg' && (
-        <div className={styles.hint}>
-          {settings.format === 'original'
-            ? messages.image.keepMetadataHintOriginal
-            : messages.image.keepMetadataHint}
+      <div className={styles.field}>
+        <div className={styles.switchRow}>
+          <div>
+            <div className={styles.labelRow}>
+              <span className={styles.label}>{messages.image.keepMetadata}</span>
+              <HelpTip text={messages.image.settingsHelp.keepMetadata} />
+            </div>
+            <div className={styles.fieldDesc}>{messages.image.keepMetadataDesc}</div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.keepMetadata}
+            className={`${styles.switch} ${settings.keepMetadata ? styles.switchOn : ''}`}
+            onClick={() => set({ keepMetadata: !settings.keepMetadata })}
+          >
+            <span className={styles.knob} />
+          </button>
         </div>
-      )}
+        {settings.keepMetadata && settings.format !== 'jpeg' && (
+          <div className={styles.hint}>
+            {settings.format === 'original'
+              ? messages.image.keepMetadataHintOriginal
+              : messages.image.keepMetadataHint}
+          </div>
+        )}
+      </div>
 
       <div className={styles.field}>
         <div className={styles.labelRow}>
           <label className={styles.label} htmlFor="max-edge">
             {messages.image.maxEdge}
           </label>
-          <HelpTip text={messages.image.settingsHelp.maxEdge} />
+          <span className={styles.edgeHint}>{messages.image.maxEdgeHint}</span>
         </div>
-        <input
-          id="max-edge"
-          type="number"
-          min={0}
-          step={64}
-          value={settings.maxEdge}
-          onChange={(e) => set({ maxEdge: Math.max(0, Number(e.target.value) || 0) })}
-        />
-        <span className={styles.hint}>{messages.image.maxEdgeHint}</span>
+        <div className={styles.inputWrap}>
+          <input
+            id="max-edge"
+            type="number"
+            min={0}
+            step={64}
+            placeholder={messages.image.maxEdgePlaceholder}
+            value={settings.maxEdge}
+            onChange={(e) => set({ maxEdge: Math.max(0, Number(e.target.value) || 0) })}
+          />
+          <span className={styles.inputUnit}>px</span>
+        </div>
       </div>
+
+      <div className={styles.saveCard}>
+        <div className={styles.saveHeader}>
+          <span className={styles.saveLabel}>{messages.image.estimatedSave}</span>
+          <strong className={styles.saveValue}>{formatBytes(Math.max(0, saved))}</strong>
+          <strong className={styles.saveRatio}>{ratio}</strong>
+        </div>
+        <div className={styles.saveBar}>
+          <div className={styles.saveFill} style={{ width: `${savedPct}%` }} />
+        </div>
+        <div className={styles.saveMeta}>
+          {messages.image.saveRate}: {formatBytes(totals.original)} →{' '}
+          {formatBytes(totals.compressed)}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className={styles.compressBtn}
+        disabled={pendingCount === 0}
+        onClick={onCompress}
+      >
+        {messages.image.compressNow(pendingCount)}
+        <ArrowRightIcon size={16} />
+      </button>
+      <button type="button" className={styles.applyBtn} onClick={onCompress}>
+        {messages.image.applySettings}
+      </button>
     </div>
   );
 }

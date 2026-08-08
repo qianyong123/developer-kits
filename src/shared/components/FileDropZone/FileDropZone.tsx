@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { UploadIcon } from '../Icons';
 import styles from './FileDropZone.module.css';
 
 interface PickType {
@@ -20,7 +21,7 @@ interface Props {
   dragTitle: string;
   tapTitle: string;
   hint: string;
-  icon?: string;
+  features?: string[];
   /** 拖拽时的文件过滤；不传则全部接收。 */
   filter?: (files: File[]) => File[];
   onFiles: (files: File[]) => void;
@@ -32,7 +33,7 @@ export default function FileDropZone({
   dragTitle,
   tapTitle,
   hint,
-  icon = '📄',
+  features,
   filter,
   onFiles,
 }: Props) {
@@ -95,12 +96,24 @@ export default function FileDropZone({
           e.target.value = '';
         }}
       />
-      <div className={styles.icon}>{icon}</div>
+      <div className={styles.icon}>
+        <UploadIcon size={26} />
+      </div>
       <div className={styles.title}>
         <span className={styles.dragText}>{dragTitle}</span>
         <span className={styles.tapText}>{tapTitle}</span>
       </div>
       <div className={styles.hint}>{hint}</div>
+      {features && features.length > 0 && (
+        <div className={styles.features}>
+          {features.map((feature) => (
+            <span key={feature} className={styles.feature}>
+              <span className={styles.dot} />
+              {feature}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

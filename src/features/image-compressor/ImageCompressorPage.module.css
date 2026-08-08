@@ -1,20 +1,33 @@
 .page {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  padding: 28px;
+}
+
+.breadcrumb {
+  font-size: 14px;
+  color: var(--text-faint);
+  margin-bottom: 4px;
 }
 
 .header h1 {
-  margin: 0 0 4px;
-  font-size: 22px;
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
 .subtitle {
-  margin: 0 0 12px;
-  color: var(--text-secondary);
-  font-size: 13px;
+  margin: 0 0 14px;
+  color: #374151;
+  font-size: 14px;
 }
 
 .notice {
@@ -40,22 +53,26 @@
 
 .toolbar {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.toolbarPrimary {
-  margin-left: auto;
+.toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .body {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   align-items: flex-start;
 }
 
 .settings {
-  width: 280px;
+  width: 300px;
   flex-shrink: 0;
   position: sticky;
   top: 24px;
@@ -66,23 +83,23 @@
   min-width: 0;
 }
 
-
 .progressBar {
   position: relative;
   height: 34px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   overflow: hidden;
   margin-bottom: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--bg-subtle);
 }
 
 .progressFill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: rgba(79, 140, 255, 0.25);
+  background: var(--accent-soft);
   transition: width 0.2s;
 }
 
@@ -96,29 +113,26 @@
 .summary {
   display: flex;
   align-items: center;
-  background: rgba(62, 207, 110, 0.1);
-  border: 1px solid rgba(62, 207, 110, 0.35);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--text);
+  background: var(--bg-success);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--success-strong);
   margin-bottom: 14px;
 }
 
 .summary b {
   font-weight: 600;
-  color: var(--text);
+  color: inherit;
   font-variant-numeric: tabular-nums;
 }
 
 .summaryGood {
-  color: var(--success) !important;
-  font-size: 14px;
+  color: var(--success-strong) !important;
 }
 
 .summaryBad {
   color: var(--danger) !important;
-  font-size: 14px;
 }
 
 .summaryUnsupported {
@@ -128,18 +142,23 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
 }
 
 .mobileSettingsToggle {
   display: none;
 }
 
-@media (max-width: 767px) {
+.scrim {
+  display: none;
+}
+
+@media (max-width: 900px) {
   .page {
     max-width: 640px;
     margin: 0 auto;
+    padding: 16px;
   }
 
   .body {
@@ -147,28 +166,48 @@
   }
 
   .settings {
-    width: 100%;
-    position: static;
-    display: none;
+    position: fixed;
+    inset: 0 0 0 auto;
+    width: min(320px, 86vw);
+    height: 100vh;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: -8px 0 28px rgba(17, 24, 39, 0.12);
+    padding: 20px 16px;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.22s ease;
+    z-index: 150;
   }
 
   .settingsOpen {
+    transform: translateX(0);
+  }
+
+  .scrim {
     display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.45);
+    z-index: 140;
   }
 
   .mobileSettingsToggle {
-    display: block;
-    background: var(--bg-panel);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
     border: 1px solid var(--border);
     color: var(--text);
     border-radius: var(--radius-sm);
-    padding: 10px 14px;
+    padding: 12px 14px;
     text-align: left;
     font-size: 14px;
   }
 
   .grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 10px;
   }
 }

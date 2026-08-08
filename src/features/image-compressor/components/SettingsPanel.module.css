@@ -1,28 +1,59 @@
 .panel {
-  background: var(--bg-panel);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  box-shadow: var(--shadow-card);
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .title {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.subtitle {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.resetBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.resetBtn:hover {
+  color: var(--accent);
+  background: var(--bg-subtle);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .label {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
 }
 
 .labelRow {
@@ -31,73 +62,220 @@
   gap: 6px;
 }
 
-.checkRow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.fieldDesc {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+.edgeHint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-faint);
 }
 
 .hint {
   font-size: 11px;
-  color: var(--text-secondary);
-  opacity: 0.85;
+  color: var(--warning);
 }
 
-.qualityRow {
-  display: flex;
-  gap: 8px;
-}
-
-.presetBtn,
-.presetBtnActive {
-  flex: 1;
-  padding: 8px 0;
+.segmentRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  background: var(--bg-subtle);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  padding: 4px;
+}
+
+.segment,
+.segmentActive {
+  padding: 7px 0;
+  border-radius: 6px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
+  border: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
 }
 
-.presetBtn {
+.segment {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.segment:hover {
+  color: var(--accent);
+}
+
+.segmentActive {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.35);
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.switch {
+  flex-shrink: 0;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.25);
+  transition: transform 0.18s ease;
+}
+
+.switchOn {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.switchOn .knob {
+  transform: translateX(18px);
+}
+
+.inputWrap {
+  position: relative;
+}
+
+.inputWrap input {
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 8px 42px 8px 12px;
+  width: 100%;
+  font-size: 14px;
 }
 
-.presetBtn:hover {
+.inputWrap input:focus {
+  outline: none;
   border-color: var(--accent);
 }
 
-.presetBtnActive {
+.inputUnit {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.saveCard {
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saveHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.saveLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.saveValue {
+  margin-left: auto;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--success-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.saveRatio {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--success-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.saveBar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.18);
+  overflow: hidden;
+}
+
+.saveFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--success);
+  transition: width 0.3s ease;
+}
+
+.saveMeta {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.compressBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: var(--accent);
   border: 1px solid var(--accent);
   color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s;
 }
 
-.check {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 13px;
-  cursor: pointer;
+.compressBtn:hover:not(:disabled) {
+  background: var(--accent-strong);
 }
 
-.check input {
-  accent-color: var(--accent);
+.compressBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-.panel select,
-.panel input[type='number'] {
+.applyBtn {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  color: var(--text);
+  color: var(--text-secondary);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  width: 100%;
+  padding: 11px 16px;
+  font-size: 14px;
 }
 
-.panel select:focus,
-.panel input:focus {
-  outline: none;
+.applyBtn:hover:not(:disabled) {
   border-color: var(--accent);
+  color: var(--accent);
 }

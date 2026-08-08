@@ -1,10 +1,10 @@
 .dropzone {
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius);
-  padding: 34px 20px;
+  border: 2px dashed #d1d5db;
+  border-radius: 16px;
+  padding: 44px 20px 36px;
   text-align: center;
   cursor: pointer;
-  background: var(--bg-panel);
+  background: var(--bg-card);
   transition:
     border-color 0.15s,
     background 0.15s;
@@ -13,17 +13,25 @@
 .dropzone:hover,
 .dragging {
   border-color: var(--accent);
-  background: rgba(79, 140, 255, 0.08);
+  background: rgba(99, 102, 241, 0.05);
 }
 
 .icon {
-  font-size: 34px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .title {
-  margin-top: 10px;
-  font-size: 15px;
+  margin-top: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
 }
 
 .tapText {
@@ -31,9 +39,32 @@
 }
 
 .hint {
-  margin-top: 6px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-faint);
+}
+
+.features {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
 }
 
 @media (max-width: 640px) {
@@ -42,5 +73,11 @@
   }
   .tapText {
     display: inline;
+  }
+  .dropzone {
+    padding: 32px 16px 28px;
+  }
+  .features {
+    gap: 14px;
   }
 }

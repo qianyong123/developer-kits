@@ -266,7 +266,6 @@ export default function SvgCompressorPage() {
         dragTitle={messages.svg.dropTitle}
         tapTitle={messages.svg.tapTitle}
         hint={messages.svg.dropHint}
-        icon="📐"
         onFiles={addFiles}
       />
 
