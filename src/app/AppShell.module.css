@@ -1,51 +1,79 @@
 .shell {
-  display: flex;
   min-height: 100%;
-}
-
-.sidebar {
-  width: 230px;
-  flex-shrink: 0;
-  background: var(--bg-panel);
-  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 20px 14px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  height: 100vh;
+  z-index: 10;
 }
 
 .brand {
   font-size: 18px;
   font-weight: 700;
-  margin-bottom: 24px;
+  white-space: nowrap;
+  width: 200px;
+  flex-shrink: 0;
 }
 
+/* 标签式导航：内容不足时居中，超出时可左右滚动（隐藏滚动条） */
 .nav {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 20px;
+  justify-content: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+.nav::before,
+.nav::after {
+  content: '';
+  margin: auto;
 }
 
 .link {
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 6px;
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 14px;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
 }
 
 .link:hover {
-  background: var(--bg-card);
   color: var(--text);
 }
 
 .active {
-  background: var(--accent);
-  color: #fff;
+  color: var(--accent-strong);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
 }
 
+/* 右侧占位与左侧标题等宽，保证导航真正居中；后续放登录用户信息 */
+.topbarRight {
+  width: 200px;
+  flex-shrink: 0;
+}
 
 .main {
   flex: 1;
@@ -54,37 +82,46 @@
 }
 
 @media (max-width: 767px) {
-  .shell {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    width: 100%;
+  .topbar {
+    flex-wrap: wrap;
     height: auto;
-    position: static;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    padding: 6px 12px 0;
+    gap: 0;
   }
 
   .brand {
-    margin-bottom: 0;
     font-size: 15px;
-    margin-right: auto;
+    width: auto;
   }
 
+  .topbarRight {
+    order: 1;
+    margin-left: auto;
+    width: auto;
+  }
+
+  /* 移动端导航单独占一行，可横向滚动 */
   .nav {
-    flex-direction: row;
+    order: 2;
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+
+  /* 取消桌面端居中用的自动外边距，让导航真正靠左 */
+  .nav::before,
+  .nav::after {
+    margin: 0;
   }
 
   .link {
-    padding: 6px 10px;
-    font-size: 13px;
+    height: 40px;
   }
 
+  .nav {
+    gap: 14px;
+  }
 
   .main {
-    padding: 12px 20px;
+    padding: 12px 16px;
   }
 }

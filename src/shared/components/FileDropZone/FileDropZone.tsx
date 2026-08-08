@@ -1,12 +1,7 @@
 import { useRef, useState } from 'react';
-import { messages } from '../../../shared/i18n/zh';
-import styles from './DropZone.module.css';
+import styles from './FileDropZone.module.css';
 
-interface Props {
-  onFiles: (files: File[]) => void;
-}
-
-interface PickFileType {
+interface PickType {
   description: string;
   accept: Record<string, string[]>;
 }
@@ -14,34 +9,33 @@ interface PickFileType {
 interface WindowWithPicker extends Window {
   showOpenFilePicker?: (options: {
     multiple?: boolean;
-    types?: PickFileType[];
+    types?: PickType[];
     excludeAcceptAllOption?: boolean;
   }) => Promise<FileSystemFileHandle[]>;
 }
 
-const PICK_TYPES: PickFileType[] = [
-  {
-    description: '图片',
-    accept: {
-      'image/*': [
-        '.jpg',
-        '.jpeg',
-        '.png',
-        '.webp',
-        '.gif',
-        '.bmp',
-        '.svg',
-        '.avif',
-        '.ico',
-        '.tiff',
-        '.heic',
-        '.heif',
-      ],
-    },
-  },
-];
+interface Props {
+  accept: string;
+  pickTypes: PickType[];
+  dragTitle: string;
+  tapTitle: string;
+  hint: string;
+  icon?: string;
+  /** 拖拽时的文件过滤；不传则全部接收。 */
+  filter?: (files: File[]) => File[];
+  onFiles: (files: File[]) => void;
+}
 
-export default function DropZone({ onFiles }: Props) {
+export default function FileDropZone({
+  accept,
+  pickTypes,
+  dragTitle,
+  tapTitle,
+  hint,
+  icon = '📄',
+  filter,
+  onFiles,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -51,7 +45,7 @@ export default function DropZone({ onFiles }: Props) {
       try {
         const handles = await picker({
           multiple: true,
-          types: PICK_TYPES,
+          types: pickTypes,
           excludeAcceptAllOption: true,
         });
         const files = await Promise.all(handles.map((h) => h.getFile()));
@@ -80,11 +74,8 @@ export default function DropZone({ onFiles }: Props) {
       onDrop={(e) => {
         e.preventDefault();
         setDragging(false);
-        // 只接收图片文件，过滤掉文档/视频等非图片
-        const imgs = Array.from(e.dataTransfer.files).filter((f) =>
-          f.type.startsWith('image/'),
-        );
-        onFiles(imgs);
+        const files = Array.from(e.dataTransfer.files);
+        onFiles(filter ? filter(files) : files);
       }}
       role="button"
       tabIndex={0}
@@ -96,7 +87,7 @@ export default function DropZone({ onFiles }: Props) {
         ref={inputRef}
         type="file"
         title=""
-        accept=".jpg, .jpeg, .png, .webp, .gif, .bmp, .svg, .avif, .ico, .tiff, .heic, .heif"
+        accept={accept}
         multiple
         hidden
         onChange={(e) => {
@@ -104,12 +95,12 @@ export default function DropZone({ onFiles }: Props) {
           e.target.value = '';
         }}
       />
-      <div className={styles.icon}>🖼️</div>
+      <div className={styles.icon}>{icon}</div>
       <div className={styles.title}>
-        <span className={styles.dragText}>{messages.image.dropTitle}</span>
-        <span className={styles.tapText}>{messages.image.tapTitle}</span>
+        <span className={styles.dragText}>{dragTitle}</span>
+        <span className={styles.tapText}>{tapTitle}</span>
       </div>
-      <div className={styles.hint}>{messages.image.dropHint}</div>
+      <div className={styles.hint}>{hint}</div>
     </div>
   );
 }

@@ -12,6 +12,9 @@ export default defineConfig({
     target: 'es2020',
     sourcemap: false,
   },
+  worker: {
+    format: 'es',
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],

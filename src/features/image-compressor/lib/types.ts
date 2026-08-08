@@ -24,6 +24,8 @@ export interface ImageItem {
   file: File;
   originalUrl: string;
   originalSize: number;
+  /** 预览背景选择依据：是否含透明像素 */
+  hasTransparency?: boolean;
   status: ItemStatus;
   progress?: number;
   result?: CompressResult;

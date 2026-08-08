@@ -5,83 +5,47 @@ import { useDebouncedEffect } from '../../shared/hooks/useDebounced';
 import { downloadUrl } from '../../shared/lib/download';
 import { formatBytes, ratioPercent } from '../../shared/lib/format';
 import { imageHasTransparency } from '../../shared/lib/hasTransparency';
-import CompareDialog from './components/CompareDialog';
-import ImageCard from './components/ImageCard';
-import SettingsPanel from './components/SettingsPanel';
-import { compressImage } from './lib/compress';
-import { outputFileName } from './lib/filenames';
-import { runPool } from './lib/queue';
-import type { CompressSettings, ImageItem } from './lib/types';
+import { buildZipBlob } from '../image-compressor/lib/zip';
+import SvgCard from './components/SvgCard';
+import SvgCompareDialog from './components/SvgCompareDialog';
+import SvgSettingsPanel from './components/SvgSettingsPanel';
+import { disposeWorkerPool, optimizeSvg } from './lib/optimize';
 import {
-  MAX_FILE_SIZE,
-  MAX_IMAGE_PIXELS,
-  MAX_IMAGE_SIDE,
-  readImageDimensions,
-} from './lib/imageInfo';
-import { buildZipBlob } from './lib/zip';
-import styles from './ImageCompressorPage.module.css';
+  isSvgFile,
+  isSvgzName,
+  MAX_SVG_FILE_SIZE,
+  readSvgText,
+  svgOutputName,
+} from './lib/svgFile';
+import type { SvgItem, SvgOutputFormat, SvgResult, SvgSettings } from './lib/types';
+import styles from './SvgCompressorPage.module.css';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const ALPHA_TYPES = new Set(['image/png', 'image/webp', 'image/gif']);
-const CONCURRENCY = 2;
-
-const IMAGE_PICK_TYPES = [
+const SVG_PICK_TYPES = [
   {
-    description: '图片',
+    description: 'SVG',
     accept: {
-      'image/*': [
-        '.jpg',
-        '.jpeg',
-        '.png',
-        '.webp',
-        '.gif',
-        '.bmp',
-        '.svg',
-        '.avif',
-        '.ico',
-        '.tiff',
-        '.heic',
-        '.heif',
-      ],
+      'image/svg+xml': ['.svg', '.svgz'],
+      'application/gzip': ['.svgz'],
     },
   },
 ];
 
-let idCounter = 0;
-const nextId = () => `img-${++idCounter}`;
-
-function formatLabel(file: File): string {
-  const map: Record<string, string> = {
-    'image/gif': 'GIF',
-    'image/bmp': 'BMP',
-    'image/svg+xml': 'SVG',
-    'image/avif': 'AVIF',
-    'image/x-icon': 'ICO',
-    'image/vnd.microsoft.icon': 'ICO',
-    'image/tiff': 'TIFF',
-  };
-  if (map[file.type]) return map[file.type];
-  const ext = file.name.split('.').pop()?.toUpperCase();
-  return ext && ext.length <= 5 ? ext : '该图片';
-}
-
-const DEFAULT_SETTINGS: CompressSettings = {
-  quality: 80,
-  compressRatio: 100,
-  format: 'original',
-  keepMetadata: false,
-  maxEdge: 4096,
+const DEFAULT_SETTINGS: SvgSettings = {
+  preset: 'balanced',
+  format: 'svg',
 };
+
+let idCounter = 0;
+const nextId = () => `svg-${++idCounter}`;
 
 function describeError(err: unknown): string {
   const msg = err instanceof Error ? err.message : '';
-  if (msg === 'no-webp') return messages.image.errorNoWebp;
-  return messages.image.errorDecode;
+  return /xml/i.test(msg) ? messages.svg.errorParse : messages.svg.errorWorker;
 }
 
-export default function ImageCompressorPage() {
-  const [items, setItems] = useState<ImageItem[]>([]);
-  const [settings, setSettings] = useState<CompressSettings>(DEFAULT_SETTINGS);
+export default function SvgCompressorPage() {
+  const [items, setItems] = useState<SvgItem[]>([]);
+  const [settings, setSettings] = useState<SvgSettings>(DEFAULT_SETTINGS);
   const [busy, setBusy] = useState(false);
   const [zipping, setZipping] = useState(false);
   const [needCompress, setNeedCompress] = useState(false);
@@ -95,7 +59,9 @@ export default function ImageCompressorPage() {
   settingsRef.current = settings;
   const genRef = useRef(0);
 
-  const updateItem = useCallback((id: string, patch: Partial<ImageItem>) => {
+  useEffect(() => () => disposeWorkerPool(), []);
+
+  const updateItem = useCallback((id: string, patch: Partial<SvgItem>) => {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }, []);
 
@@ -104,39 +70,32 @@ export default function ImageCompressorPage() {
     if (current.length === 0) return;
 
     const gen = ++genRef.current;
-    // unsupported（如 SVG）保留在列表中，不参与压缩
     const snapshot = current.map((it) => {
-      if (it.status === 'unsupported') return it;
-      if (it.result) URL.revokeObjectURL(it.result.url);
-      return { ...it, status: 'pending' as const, result: undefined, error: undefined, progress: undefined };
+      if (it.result) URL.revokeObjectURL(it.result.previewUrl);
+      return { ...it, status: 'pending' as const, result: undefined, error: undefined };
     });
     setItems(snapshot);
     setBusy(true);
     const runSettings = settingsRef.current;
-    const runnable = snapshot.filter((it) => it.status !== 'unsupported');
 
-    await runPool(
-      runnable,
-      async (item) => {
+    await Promise.all(
+      snapshot.map(async (item) => {
         if (genRef.current !== gen) return;
-        updateItem(item.id, { status: 'processing', progress: 0 });
-        let lastReported = 0;
+        updateItem(item.id, { status: 'processing' });
         try {
-          const result = await compressImage(item.file, runSettings, (p) => {
-            if (genRef.current !== gen) return;
-            if (p - lastReported >= 0.05 || p >= 1) {
-              lastReported = p;
-              updateItem(item.id, { progress: p });
-            }
-          });
+          const optimized = await optimizeSvg(
+            item.originalCode,
+            runSettings.preset,
+            runSettings.format,
+          );
           if (genRef.current !== gen) return;
-          updateItem(item.id, { status: 'done', result, progress: 1 });
+          const result = buildResult(item, optimized);
+          updateItem(item.id, { status: 'done', result });
         } catch (err) {
           if (genRef.current !== gen) return;
           updateItem(item.id, { status: 'error', error: describeError(err) });
         }
-      },
-      CONCURRENCY,
+      }),
     );
 
     if (genRef.current === gen) setBusy(false);
@@ -158,62 +117,41 @@ export default function ImageCompressorPage() {
 
   const addFiles = useCallback(async (files: File[]) => {
     const notices: string[] = [];
+    const svgFiles = files.filter(isSvgFile);
+    const ignored = files.length - svgFiles.length;
+    if (ignored > 0) notices.push(messages.svg.unsupportedFormat(`${ignored} 个文件`));
 
-    const supported = files.filter((f) => ALLOWED_TYPES.includes(f.type));
-    const unsupported = files.filter((f) => !ALLOWED_TYPES.includes(f.type));
-
-    // 支持格式：大小过滤
-    const sizeOk = supported.filter((f) => f.size <= MAX_FILE_SIZE);
-    if (sizeOk.length !== supported.length) notices.push(messages.image.fileTooLarge);
-
-    // 支持格式：像素尺寸过滤
-    let valid = sizeOk;
-    if (valid.length > 0) {
-      const dimOk: File[] = [];
-      for (const f of sizeOk) {
-        const dims = await readImageDimensions(f);
-        const tooBig =
-          dims &&
-          (dims.width > MAX_IMAGE_SIDE ||
-            dims.height > MAX_IMAGE_SIDE ||
-            dims.width * dims.height > MAX_IMAGE_PIXELS);
-        if (tooBig) continue;
-        dimOk.push(f);
-      }
-      if (dimOk.length !== sizeOk.length) notices.push(messages.image.imageTooLarge);
-      valid = dimOk;
-    }
-
+    const sizeOk = svgFiles.filter((f) => f.size <= MAX_SVG_FILE_SIZE);
+    if (sizeOk.length !== svgFiles.length) notices.push(messages.svg.fileTooLarge);
     if (notices.length > 0) setNotice(notices.join('；'));
 
-    const validWithAlpha = await Promise.all(
-      valid.map(async (file) => ({
-        file,
-        hasTransparency: ALPHA_TYPES.has(file.type) ? await imageHasTransparency(file) : false,
-      })),
-    );
-
-    const created: ImageItem[] = [
-      ...validWithAlpha.map(({ file, hasTransparency }) => ({
-        id: nextId(),
-        file,
-        originalUrl: URL.createObjectURL(file),
-        originalSize: file.size,
-        hasTransparency,
-        status: 'pending' as const,
-      })),
-      ...unsupported.map((file) => ({
-        id: nextId(),
-        file,
-        originalUrl: URL.createObjectURL(file),
-        originalSize: file.size,
-        status: 'unsupported' as const,
-        error: messages.image.unsupportedFormat(formatLabel(file)),
-      })),
-    ];
+    const created: SvgItem[] = [];
+    for (const file of sizeOk) {
+      try {
+        const originalCode = await readSvgText(file);
+        const hasTransparency = await imageHasTransparency(
+          new Blob([originalCode], { type: 'image/svg+xml' }),
+        );
+        created.push({
+          id: nextId(),
+          file,
+          originalUrl: URL.createObjectURL(
+            new Blob([originalCode], { type: 'image/svg+xml' }),
+          ),
+          originalSize: file.size,
+          originalCode,
+          hasTransparency,
+          status: 'pending',
+        });
+      } catch {
+        notices.push(messages.svg.readFailed(file.name));
+      }
+    }
+    if (notices.length > 0) setNotice(notices.join('；'));
     if (created.length === 0) return;
+
     setItems((prev) => [...prev, ...created]);
-    if (valid.length > 0) setNeedCompress(true);
+    setNeedCompress(true);
   }, []);
 
   const removeItem = useCallback((id: string) => {
@@ -221,7 +159,9 @@ export default function ImageCompressorPage() {
       const target = prev.find((it) => it.id === id);
       if (target) {
         URL.revokeObjectURL(target.originalUrl);
-        if (target.result) URL.revokeObjectURL(target.result.url);
+        if (target.result && target.result.previewUrl !== target.originalUrl) {
+          URL.revokeObjectURL(target.result.previewUrl);
+        }
       }
       return prev.filter((it) => it.id !== id);
     });
@@ -230,16 +170,20 @@ export default function ImageCompressorPage() {
   const clearAll = useCallback(() => {
     itemsRef.current.forEach((it) => {
       URL.revokeObjectURL(it.originalUrl);
-      if (it.result) URL.revokeObjectURL(it.result.url);
+      if (it.result && it.result.previewUrl !== it.originalUrl) {
+        URL.revokeObjectURL(it.result.previewUrl);
+      }
     });
     genRef.current += 1; // 终止进行中的压缩
     setItems([]);
     setBusy(false);
   }, []);
 
-  const downloadOne = useCallback((item: ImageItem) => {
+  const downloadOne = useCallback((item: SvgItem) => {
     if (!item.result) return;
-    downloadUrl(item.result.url, outputFileName(item.file.name, item.result.format));
+    const url = URL.createObjectURL(item.result.blob);
+    downloadUrl(url, svgOutputName(item.file.name, item.result.format));
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
   }, []);
 
   const downloadAll = useCallback(async () => {
@@ -250,13 +194,15 @@ export default function ImageCompressorPage() {
     try {
       const entries = await Promise.all(
         done.map(async (it) => ({
-          name: outputFileName(it.file.name, it.result!.format),
+          name: svgOutputName(it.file.name, it.result!.format),
           blob: it.result!.blob,
         })),
       );
-      const zipBlob = await buildZipBlob(entries);
+      // SVG 文本用 ZIP 压缩；SVGZ 本身已 gzip，ZIP 层用存储模式
+      const level = settingsRef.current.format === 'svgz' ? 0 : 6;
+      const zipBlob = await buildZipBlob(entries, level);
       const url = URL.createObjectURL(zipBlob);
-      downloadUrl(url, 'compressed-images.zip');
+      downloadUrl(url, 'compressed-svgs.zip');
       setTimeout(() => URL.revokeObjectURL(url), 30_000);
     } finally {
       setZipping(false);
@@ -266,7 +212,6 @@ export default function ImageCompressorPage() {
   const compareItem = items.find((it) => it.id === compareId && it.result) ?? null;
   const resultCount = items.filter((it) => it.result).length;
   const doneItems = items.filter((it) => it.result);
-  const unsupportedCount = items.filter((it) => it.status === 'unsupported').length;
   const totalOriginal = doneItems.reduce((sum, it) => sum + it.originalSize, 0);
   const totalCompressed = doneItems.reduce((sum, it) => sum + (it.result?.size ?? 0), 0);
   const finishedCount = items.filter((it) => it.status === 'done' || it.status === 'error').length;
@@ -276,7 +221,7 @@ export default function ImageCompressorPage() {
       : Math.round(
           (items.reduce((sum, it) => {
             if (it.status === 'done' || it.status === 'error') return sum + 1;
-            if (it.status === 'processing') return sum + (it.progress ?? 0);
+            if (it.status === 'processing') return sum + 0.5;
             return sum;
           }, 0) /
             items.length) *
@@ -286,8 +231,8 @@ export default function ImageCompressorPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <h1>{messages.image.title}</h1>
-        <p className={styles.subtitle}>{messages.image.subtitle}</p>
+        <h1>{messages.svg.title}</h1>
+        <p className={styles.subtitle}>{messages.svg.subtitle}</p>
 
         {notice && (
           <div className={styles.notice}>
@@ -299,34 +244,29 @@ export default function ImageCompressorPage() {
         )}
 
         <div className={styles.toolbar}>
-          <button
-            className="btn"
-            disabled={busy || !items.some((it) => it.status !== 'unsupported')}
-            onClick={() => void startCompress()}
-          >
-            {messages.image.recompress}
+          <button className="btn" disabled={busy || items.length === 0} onClick={() => void startCompress()}>
+            {messages.svg.recompress}
           </button>
           <button className="btn btn-ghost-danger" disabled={items.length === 0} onClick={clearAll}>
-            {messages.image.clearAll}
+            {messages.svg.clearAll}
           </button>
           <button
             className={`btn btn-primary ${styles.toolbarPrimary}`}
             disabled={zipping || resultCount === 0}
             onClick={() => void downloadAll()}
           >
-            {zipping ? messages.image.zipping : messages.image.downloadAll}
+            {zipping ? messages.svg.zipping : messages.svg.downloadAll}
           </button>
         </div>
       </header>
 
       <FileDropZone
-        accept=".jpg, .jpeg, .png, .webp, .gif, .bmp, .svg, .avif, .ico, .tiff, .heic, .heif"
-        pickTypes={IMAGE_PICK_TYPES}
-        dragTitle={messages.image.dropTitle}
-        tapTitle={messages.image.tapTitle}
-        hint={messages.image.dropHint}
-        icon="🖼️"
-        filter={(files) => files.filter((f) => f.type.startsWith('image/'))}
+        accept=".svg,.svgz"
+        pickTypes={SVG_PICK_TYPES}
+        dragTitle={messages.svg.dropTitle}
+        tapTitle={messages.svg.tapTitle}
+        hint={messages.svg.dropHint}
+        icon="📐"
         onFiles={addFiles}
       />
 
@@ -335,13 +275,13 @@ export default function ImageCompressorPage() {
         onClick={() => setMobileSettingsOpen((v) => !v)}
         aria-expanded={mobileSettingsOpen}
       >
-        {messages.image.settings}
+        {messages.svg.settings}
         {busy ? ` · ${overallPct}%` : ''}
       </button>
 
       <div className={styles.body}>
         <aside className={`${styles.settings} ${mobileSettingsOpen ? styles.settingsOpen : ''}`}>
-          <SettingsPanel settings={settings} onChange={setSettings} />
+          <SvgSettingsPanel settings={settings} onChange={setSettings} />
         </aside>
 
         <section className={styles.list}>
@@ -351,7 +291,7 @@ export default function ImageCompressorPage() {
                 <div className={styles.progressBar}>
                   <div className={styles.progressFill} style={{ width: `${overallPct}%` }} />
                   <span>
-                    {messages.image.processed} {finishedCount} {messages.image.of} {items.length} ·{' '}
+                    {messages.svg.processed} {finishedCount} {messages.svg.of} {items.length} ·{' '}
                     {overallPct}%
                   </span>
                 </div>
@@ -359,10 +299,10 @@ export default function ImageCompressorPage() {
               {doneItems.length > 0 && (
                 <div className={styles.summary}>
                   <span>
-                    {messages.image.summary} {doneItems.length} {messages.image.images} ·{' '}
-                    {messages.image.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
-                    {messages.image.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
-                    {messages.image.totalRatio}:{' '}
+                    {messages.svg.summary} {doneItems.length} {messages.svg.files} ·{' '}
+                    {messages.svg.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
+                    {messages.svg.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
+                    {messages.svg.totalRatio}:{' '}
                     <b
                       className={
                         totalCompressed > totalOriginal ? styles.summaryBad : styles.summaryGood
@@ -370,18 +310,12 @@ export default function ImageCompressorPage() {
                     >
                       {ratioPercent(totalOriginal, totalCompressed)}
                     </b>
-                    {unsupportedCount > 0 && (
-                      <span className={styles.summaryUnsupported}>
-                        {' · '}
-                        {messages.image.unsupportedSummary(unsupportedCount)}
-                      </span>
-                    )}
                   </span>
                 </div>
               )}
               <div className={styles.grid}>
                 {items.map((it) => (
-                  <ImageCard
+                  <SvgCard
                     key={it.id}
                     item={it}
                     previewBg={it.hasTransparency ? 'checker' : 'white'}
@@ -397,7 +331,7 @@ export default function ImageCompressorPage() {
       </div>
 
       {compareItem && (
-        <CompareDialog
+        <SvgCompareDialog
           item={compareItem}
           onClose={() => setCompareId(null)}
           previewBg={compareItem.hasTransparency ? 'checker' : 'white'}
@@ -405,4 +339,34 @@ export default function ImageCompressorPage() {
       )}
     </div>
   );
+}
+
+function buildResult(
+  item: SvgItem,
+  optimized: {
+    code: string;
+    blob: Blob;
+    previewBlob: Blob;
+    size: number;
+    format: SvgOutputFormat;
+  },
+): SvgResult {
+  // 优化后不小于原文件时保留原文件，不输出更差的结果
+  if (optimized.size >= item.originalSize) {
+    return {
+      blob: item.file,
+      previewUrl: item.originalUrl,
+      size: item.originalSize,
+      format: isSvgzName(item.file.name) ? 'svgz' : 'svg',
+      code: item.originalCode,
+      note: 'kept-original',
+    };
+  }
+  return {
+    blob: optimized.blob,
+    previewUrl: URL.createObjectURL(optimized.previewBlob),
+    size: optimized.size,
+    format: optimized.format,
+    code: optimized.code,
+  };
 }

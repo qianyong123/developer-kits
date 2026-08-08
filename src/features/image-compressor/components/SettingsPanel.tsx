@@ -1,7 +1,7 @@
 import { messages } from '../../../shared/i18n/zh';
+import HelpTip from '../../../shared/components/HelpTip/HelpTip';
 import type { FormatOption } from '../lib/encoders';
 import type { CompressSettings } from '../lib/types';
-import HelpTip from './HelpTip';
 import styles from './SettingsPanel.module.css';
 
 /** 质量预设档位：极致 / 高保真（默认） / 均衡 / 小体积 */

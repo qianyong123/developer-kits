@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
 import { messages } from '../../../shared/i18n/zh';
 import { formatBytes, ratioPercent } from '../../../shared/lib/format';
+import type { PreviewBg } from '../../../shared/lib/hasTransparency';
 import type { ImageItem } from '../lib/types';
 import styles from './ImageCard.module.css';
 
 interface Props {
   item: ImageItem;
+  previewBg: PreviewBg;
   onRemove: (id: string) => void;
   onDownload: (item: ImageItem) => void;
   onCompare: (id: string) => void;
@@ -49,7 +51,7 @@ function noteText(note?: string): string | null {
   }
 }
 
-export default function ImageCard({ item, onRemove, onDownload, onCompare }: Props) {
+export default function ImageCard({ item, previewBg, onRemove, onDownload, onCompare }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [small, setSmall] = useState(false);
@@ -59,18 +61,23 @@ export default function ImageCard({ item, onRemove, onDownload, onCompare }: Pro
   const note = noteText(result?.note);
   const formatMeta = FORMAT_META[result ? result.format : inputFormatKey(item.file.type)];
 
-  // 小图（小于展示区）保持原尺寸居中；大图裁切铺满
+  // 小图/略大于展示区的图：contain 放大居中，不裁切；明显更大的照片类：裁切铺满
   const handleThumbLoad = () => {
     const wrap = wrapRef.current;
     const img = imgRef.current;
     if (wrap && img) {
-      setSmall(img.naturalWidth <= wrap.clientWidth && img.naturalHeight <= wrap.clientHeight);
+      const scaleX = img.naturalWidth / wrap.clientWidth;
+      const scaleY = img.naturalHeight / wrap.clientHeight;
+      setSmall(Math.max(scaleX, scaleY) <= 1.35);
     }
   };
 
   return (
     <div className={styles.card}>
-      <div className={styles.thumbWrap} ref={wrapRef}>
+      <div
+        className={`${styles.thumbWrap} ${previewBg === 'checker' ? styles.thumbChecker : styles.thumbWhite}`}
+        ref={wrapRef}
+      >
         <img
           ref={imgRef}
           className={`${styles.thumb} ${small ? styles.thumbSmall : ''}`}

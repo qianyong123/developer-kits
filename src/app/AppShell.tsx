@@ -6,7 +6,7 @@ import styles from './AppShell.module.css';
 export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className={styles.shell}>
-      <aside className={styles.sidebar}>
+      <header className={styles.topbar}>
         <div className={styles.brand}>{messages.app.brand}</div>
         <nav className={styles.nav}>
           <NavLink
@@ -16,12 +16,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
           >
             {messages.app.navImage}
           </NavLink>
-          <NavLink to="/json" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
+          <NavLink
+            to="/svg"
+            className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
+          >
+            {messages.app.navSvg}
+          </NavLink>
+          <NavLink
+            to="/json"
+            className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}
+          >
             {messages.app.navJson}
           </NavLink>
         </nav>
-
-      </aside>
+        {/* 右侧预留：后续显示登录用户信息 */}
+        <div className={styles.topbarRight} aria-hidden="true" />
+      </header>
       <main className={styles.main}>{children}</main>
     </div>
   );

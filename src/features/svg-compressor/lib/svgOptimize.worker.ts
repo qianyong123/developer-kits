@@ -1,0 +1,29 @@
+import { optimizeExtreme } from './extreme';
+import { buildSvgoConfig } from './presets';
+import type { OptimizeRequest, OptimizeResponse } from './workerProtocol';
+
+// 避免引入 webworker lib 与 DOM lib 的全局冲突，Worker 作用域做最小化类型声明
+const scope = self as unknown as {
+  onmessage: ((event: MessageEvent<OptimizeRequest>) => void) | null;
+  postMessage: (response: OptimizeResponse) => void;
+};
+
+let svgoPromise: Promise<typeof import('svgo/browser')> | null = null;
+
+scope.onmessage = async (event: MessageEvent<OptimizeRequest>) => {
+  const { id, input, preset } = event.data;
+  try {
+    const { optimize } = await (svgoPromise ??= import('svgo/browser'));
+    const text =
+      preset === 'extreme'
+        ? optimizeExtreme(input, optimize)
+        : optimize(input, buildSvgoConfig(preset)).data;
+    scope.postMessage({ id, ok: true, text });
+  } catch (error) {
+    scope.postMessage({
+      id,
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};

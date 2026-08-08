@@ -7,7 +7,6 @@
   flex-direction: column;
 }
 
-/* 统一图片展示区：固定高度预览，大图裁切铺满，小图放大居中 */
 .thumbWrap {
   width: 100%;
   height: 200px;
@@ -35,18 +34,14 @@
 .thumb {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 10px;
   display: block;
 }
 
-.thumbSmall {
-  width: auto;
-  height: auto;
-  min-width: 45%;
-  min-height: 45%;
-  max-width: 88%;
-  max-height: 88%;
-  object-fit: contain;
+.thumbPlaceholder {
+  font-size: 42px;
+  opacity: 0.4;
 }
 
 .info {
@@ -79,19 +74,6 @@
   padding: 2px 6px;
   border-radius: 4px;
   letter-spacing: 0.3px;
-}
-
-.formatPng {
-  background: rgba(62, 207, 110, 0.15);
-  color: var(--success);
-}
-
-.formatJpeg {
-  background: rgba(230, 162, 60, 0.15);
-  color: var(--warning);
-}
-
-.formatWebp {
   background: rgba(79, 140, 255, 0.15);
   color: var(--accent);
 }
@@ -164,15 +146,6 @@
   color: var(--danger);
 }
 
-.unsupported {
-  background: rgba(230, 162, 60, 0.15);
-  color: var(--warning);
-}
-
-.quality {
-  color: var(--text-secondary);
-}
-
 .errorText {
   color: var(--danger);
 }
@@ -180,20 +153,6 @@
 .note {
   font-size: 11px;
   color: var(--warning);
-}
-
-.miniBar {
-  height: 4px;
-  border-radius: 999px;
-  background: var(--bg-panel);
-  overflow: hidden;
-}
-
-.miniFill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
-  transition: width 0.15s;
 }
 
 .actions {

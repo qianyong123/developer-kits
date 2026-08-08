@@ -1,6 +1,9 @@
-import { zipSync } from 'fflate';
+import { zipSync, type DeflateOptions } from 'fflate';
 
-export async function buildZipBlob(files: Array<{ name: string; blob: Blob }>): Promise<Blob> {
+export async function buildZipBlob(
+  files: Array<{ name: string; blob: Blob }>,
+  level: DeflateOptions['level'] = 0,
+): Promise<Blob> {
   const used = new Set<string>();
   const entries: Record<string, Uint8Array> = {};
 
@@ -8,8 +11,8 @@ export async function buildZipBlob(files: Array<{ name: string; blob: Blob }>): 
     entries[uniqueName(name, used)] = new Uint8Array(await blob.arrayBuffer());
   }
 
-  // 图片本身已是压缩数据，ZIP 层使用存储模式（level 0），速度最快
-  const zipped = zipSync(entries, { level: 0 });
+  // 默认存储模式（level 0）：位图本身已是压缩数据；文本类内容（如 SVG）可传入更高压缩级别
+  const zipped = zipSync(entries, { level });
   return new Blob([zipped], { type: 'application/zip' });
 }
 
