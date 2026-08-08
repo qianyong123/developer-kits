@@ -287,7 +287,6 @@ export default function ImageCompressorPage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div className={styles.breadcrumb}>{messages.image.breadcrumb}</div>
         <h1>{messages.image.title}</h1>
         <p className={styles.subtitle}>{messages.image.subtitle}</p>
 

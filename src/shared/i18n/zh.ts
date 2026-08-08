@@ -7,9 +7,6 @@ export const messages = {
     navSvg: 'SVG 压缩',
     navJson: 'JSON 工具',
     navOnline: '在线',
-    recent: '最近使用',
-    proTitle: 'Pro 会员',
-    proSubtitle: '批量无上限 · 高级算法',
   },
   json: {
     title: 'JSON 工具',
@@ -17,7 +14,6 @@ export const messages = {
   },
   image: {
     title: '图片压缩',
-    breadcrumb: '工具箱 / 图片压缩',
     subtitle: '批量压缩 · 格式转换 · 全部在本地浏览器完成，文件不上传',
     dropTitle: '拖拽图片到此处，或点击上传',
     tapTitle: '点击选择图片',

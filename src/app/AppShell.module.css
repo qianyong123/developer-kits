@@ -116,34 +116,6 @@
   font-weight: 600;
 }
 
-.recent {
-  cursor: default;
-}
-
-.pro {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--success);
-  color: #fff;
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-}
-
-.pro strong {
-  display: block;
-  font-size: 14px;
-  line-height: 1.3;
-}
-
-.proSub {
-  display: block;
-  font-size: 12px;
-  opacity: 0.92;
-  margin-top: 2px;
-}
-
 .body {
   flex: 1;
   min-width: 0;

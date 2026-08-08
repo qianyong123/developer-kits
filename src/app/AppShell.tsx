@@ -5,11 +5,9 @@ import { messages } from '../shared/i18n/zh';
 import {
   BracesIcon,
   BrandIcon,
-  ClockIcon,
   CodeIcon,
   ImageIcon,
   MenuIcon,
-  ZapIcon,
 } from '../shared/components/Icons';
 import styles from './AppShell.module.css';
 
@@ -61,19 +59,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               {online && <span className={styles.onlineBadge}>{messages.app.navOnline}</span>}
             </NavLink>
           ))}
-          <div className={`${styles.link} ${styles.recent}`}>
-            <ClockIcon size={17} />
-            <span className={styles.linkLabel}>{messages.app.recent}</span>
-          </div>
         </nav>
-
-        <div className={styles.pro}>
-          <ZapIcon size={18} />
-          <span>
-            <strong>{messages.app.proTitle}</strong>
-            <span className={styles.proSub}>{messages.app.proSubtitle}</span>
-          </span>
-        </div>
       </aside>
 
       {open && <div className={styles.scrim} onClick={() => setOpen(false)} />}

@@ -11,12 +11,6 @@
   padding: 28px;
 }
 
-.breadcrumb {
-  font-size: 14px;
-  color: var(--text-faint);
-  margin-bottom: 4px;
-}
-
 .header h1 {
   margin: 0 0 6px;
   font-size: 24px;
