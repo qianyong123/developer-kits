@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { messages } from '../../../shared/i18n/zh';
-import SliderCompare from '../../../shared/components/SliderCompare/SliderCompare';
+import SideBySideCompare from '../../../shared/components/SideBySideCompare/SideBySideCompare';
 import { formatBytes } from '../../../shared/lib/format';
 import type { PreviewBg } from '../../../shared/lib/hasTransparency';
 import type { SvgItem } from '../lib/types';
@@ -60,12 +60,13 @@ export default function SvgCompareDialog({
         </div>
 
         {tab === 'visual' ? (
-          <SliderCompare
+          <SideBySideCompare
             before={item.originalUrl}
             after={result.previewUrl}
             beforeLabel={messages.svg.original}
             afterLabel={messages.svg.compressed}
-            ariaLabel={messages.svg.compareSlide}
+            beforeSize={formatBytes(item.originalSize)}
+            afterSize={formatBytes(result.size)}
             background={previewBg}
           />
         ) : (
@@ -82,14 +83,6 @@ export default function SvgCompareDialog({
           </div>
         )}
 
-        <div className={styles.meta}>
-          <span>
-            {messages.svg.original}: {formatBytes(item.originalSize)}
-          </span>
-          <span>
-            {messages.svg.compressed}: {formatBytes(result.size)}
-          </span>
-        </div>
       </div>
     </div>
   );

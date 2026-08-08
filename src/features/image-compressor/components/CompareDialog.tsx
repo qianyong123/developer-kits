@@ -1,7 +1,7 @@
 import { messages } from '../../../shared/i18n/zh';
 import { formatBytes } from '../../../shared/lib/format';
 import type { PreviewBg } from '../../../shared/lib/hasTransparency';
-import SliderCompare from '../../../shared/components/SliderCompare/SliderCompare';
+import SideBySideCompare from '../../../shared/components/SideBySideCompare/SideBySideCompare';
 import type { ImageItem } from '../lib/types';
 import styles from './CompareDialog.module.css';
 
@@ -26,23 +26,15 @@ export default function CompareDialog({
           </button>
         </div>
 
-        <SliderCompare
+        <SideBySideCompare
           before={item.originalUrl}
           after={item.result.url}
           beforeLabel={messages.image.original}
           afterLabel={messages.image.compressed}
-          ariaLabel={messages.image.compareSlide}
+          beforeSize={formatBytes(item.originalSize)}
+          afterSize={formatBytes(item.result.size)}
           background={previewBg}
         />
-
-        <div className={styles.meta}>
-          <span>
-            {messages.image.original}: {formatBytes(item.originalSize)}
-          </span>
-          <span>
-            {messages.image.compressed}: {formatBytes(item.result.size)}
-          </span>
-        </div>
       </div>
     </div>
   );
