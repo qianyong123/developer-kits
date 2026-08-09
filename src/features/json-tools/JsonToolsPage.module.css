@@ -1,14 +1,364 @@
 .page {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--bg-card);
+  padding: 0;
 }
 
-.page h1 {
-  margin: 0 0 12px;
-  font-size: 22px;
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.page p {
+.headerTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  min-width: 0;
+}
+
+.header h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.subtitle {
+  margin: 0;
   color: var(--text-secondary);
   font-size: 14px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+}
+
+.mode,
+.modeActive {
+  padding: 8px 0;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+
+.mode {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.mode:hover {
+  color: var(--accent);
+}
+
+.modeActive {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.35);
+}
+
+.options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.optionLabel {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.segment,
+.segmentActive {
+  padding: 4px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+}
+
+.segmentActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.editorLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.textarea {
+  flex: 1;
+  min-height: 420px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.output {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  min-height: 420px;
+}
+
+.outputText {
+  flex: 1;
+  margin: 0;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.outputMeta {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  font-size: 14px;
+}
+
+.errorBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+
+.errorPos {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.errorSide {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.errorMessage {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+  word-break: break-all;
+}
+
+.validBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.validTitle {
+  font-size: 16px;
+  color: var(--success-strong);
+}
+
+.warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--warning);
+  font-size: 13px;
+  background: rgba(230, 162, 60, 0.12);
+  border: 1px solid rgba(230, 162, 60, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.warnings p {
+  margin: 0;
+}
+
+.diffBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.diffNone {
+  color: var(--success-strong);
+  font-size: 14px;
+}
+
+.diffSummary {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.changeList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.changeRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.changeBadge {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.added {
+  background: var(--success);
+}
+
+.removed {
+  background: var(--danger);
+}
+
+.changed {
+  background: var(--warning);
+}
+
+.changePath {
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--accent-strong);
+}
+
+.changeValue {
+  min-width: 0;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.diffResult {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .modes {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .textarea,
+  .output {
+    min-height: 260px;
+  }
+
+  .diffResult {
+    grid-column: auto;
+  }
 }
