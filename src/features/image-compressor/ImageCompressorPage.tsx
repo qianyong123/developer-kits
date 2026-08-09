@@ -209,7 +209,7 @@ export default function ImageCompressorPage() {
       valid = dimOk;
     }
 
-    if (notices.length > 0) setNotice(notices.join('；'));
+    setNotice(notices.length > 0 ? notices.join('；') : null);
 
     const validWithAlpha = await Promise.all(
       valid.map(async (file) => ({
@@ -246,14 +246,15 @@ export default function ImageCompressorPage() {
   }, []);
 
   const removeItem = useCallback((id: string) => {
-    setItems((prev) => {
-      const target = prev.find((it) => it.id === id);
-      if (target) {
-        URL.revokeObjectURL(target.originalUrl);
-        if (target.result) URL.revokeObjectURL(target.result.url);
-      }
-      return prev.filter((it) => it.id !== id);
-    });
+    const target = itemsRef.current.find((it) => it.id === id);
+    if (target) {
+      URL.revokeObjectURL(target.originalUrl);
+      if (target.result) URL.revokeObjectURL(target.result.url);
+    }
+    const next = itemsRef.current.filter((it) => it.id !== id);
+    // 删除后数量低于 50 上限时，关闭“最多 50 张”相关提示
+    if (next.length < MAX_FILES_PER_BATCH) setNotice(null);
+    setItems(next);
   }, []);
 
   const clearAll = useCallback(() => {
@@ -264,6 +265,7 @@ export default function ImageCompressorPage() {
     genRef.current += 1; // 终止进行中的压缩
     setItems([]);
     setBusy(false);
+    setNotice(null);
   }, []);
 
   const downloadOne = useCallback((item: ImageItem) => {

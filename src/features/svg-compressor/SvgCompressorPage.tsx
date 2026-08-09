@@ -139,7 +139,7 @@ export default function SvgCompressorPage() {
 
     const sizeOk = svgFiles.filter((f) => f.size <= MAX_SVG_FILE_SIZE);
     if (sizeOk.length !== svgFiles.length) notices.push(messages.svg.fileTooLarge);
-    if (notices.length > 0) setNotice(notices.join('；'));
+    setNotice(notices.length > 0 ? notices.join('；') : null);
 
     const created: SvgItem[] = [];
     for (const file of sizeOk) {
@@ -194,6 +194,7 @@ export default function SvgCompressorPage() {
     genRef.current += 1; // 终止进行中的压缩
     setItems([]);
     setBusy(false);
+    setNotice(null);
   }, []);
 
   const downloadOne = useCallback((item: SvgItem) => {
