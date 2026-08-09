@@ -18,16 +18,25 @@ export interface DuplicateKeyInfo {
   secondLine: number;
 }
 
+export interface BigNumberInfo {
+  line: number;
+  column: number;
+  raw: string;
+}
+
 export interface ValidateResult {
   ok: boolean;
   error?: JsonError;
   duplicates?: DuplicateKeyInfo[];
+  bigNumbers?: BigNumberInfo[];
   size?: number;
   lines?: number;
 }
 
 export type JsonParseResult = { ok: true; value: unknown } | { ok: false; error: JsonError };
-export type JsonTransformResult = { ok: true; text: string } | { ok: false; error: JsonError };
+export type JsonTransformResult =
+  | { ok: true; text: string; value: unknown; bigNumbers: BigNumberInfo[] }
+  | { ok: false; error: JsonError };
 
 export interface JsonChange {
   path: string;
@@ -50,6 +59,7 @@ class JsonParser {
   private pos = 0;
   private readonly text: string;
   private readonly duplicates: DuplicateKeyInfo[] = [];
+  private readonly bigNumbers: BigNumberInfo[] = [];
 
   constructor(text: string) {
     this.text = text;
@@ -67,6 +77,10 @@ class JsonParser {
 
   getDuplicates(): DuplicateKeyInfo[] {
     return this.duplicates;
+  }
+
+  getBigNumbers(): BigNumberInfo[] {
+    return this.bigNumbers;
   }
 
   private parseValue(): unknown {
@@ -253,7 +267,16 @@ class JsonParser {
         this.pos += 1;
       }
     }
-    return Number(this.text.slice(start, this.pos));
+    const raw = this.text.slice(start, this.pos);
+    // 超出 2^53 安全整数范围的整数字面量：JSON.parse/Number 会丢失精度
+    if (/^-?\d+$/.test(raw)) {
+      const value = BigInt(raw);
+      if (value > 9007199254740991n || value < -9007199254740991n) {
+        const { line, column } = offsetToLineCol(this.text, start);
+        this.bigNumbers.push({ line, column, raw });
+      }
+    }
+    return Number(raw);
   }
 
   private expectWord(word: 'true' | 'false' | 'null', value: unknown): unknown {
@@ -280,12 +303,19 @@ class JsonParser {
 /** 严格解析 JSON：返回解析值与重复键清单，或带精确行列的语法错误。 */
 export function parseJsonStrict(
   text: string,
-): { ok: true; value: unknown; duplicates: DuplicateKeyInfo[] } | { ok: false; error: JsonError } {
+):
+  | { ok: true; value: unknown; duplicates: DuplicateKeyInfo[]; bigNumbers: BigNumberInfo[] }
+  | { ok: false; error: JsonError } {
   if (text.trim() === '') return { ok: false, error: { message: 'empty' } };
   try {
     const parser = new JsonParser(text);
     const value = parser.parse();
-    return { ok: true, value, duplicates: parser.getDuplicates() };
+    return {
+      ok: true,
+      value,
+      duplicates: parser.getDuplicates(),
+      bigNumbers: parser.getBigNumbers(),
+    };
   } catch (err) {
     if (err instanceof JsonSyntaxError) return { ok: false, error: err.error };
     return { ok: false, error: { message: err instanceof Error ? err.message : String(err) } };
@@ -305,7 +335,7 @@ export function validateJson(text: string): ValidateResult {
   const lines = countLines(text);
   const parsed = parseJsonStrict(text);
   if (!parsed.ok) return { ok: false, error: parsed.error, size, lines };
-  return { ok: true, size, lines, duplicates: parsed.duplicates };
+  return { ok: true, size, lines, duplicates: parsed.duplicates, bigNumbers: parsed.bigNumbers };
 }
 
 export function formatJson(
@@ -313,16 +343,26 @@ export function formatJson(
   indent = 2,
   sortKeys = false,
 ): JsonTransformResult {
-  const parsed = parseJson(text);
+  const parsed = parseJsonStrict(text);
   if (!parsed.ok) return parsed;
   const value = sortKeys ? sortObjectKeys(parsed.value) : parsed.value;
-  return { ok: true, text: JSON.stringify(value, null, indent) };
+  return {
+    ok: true,
+    text: JSON.stringify(value, null, indent),
+    value,
+    bigNumbers: parsed.bigNumbers,
+  };
 }
 
 export function minifyJson(text: string): JsonTransformResult {
-  const parsed = parseJson(text);
+  const parsed = parseJsonStrict(text);
   if (!parsed.ok) return parsed;
-  return { ok: true, text: JSON.stringify(parsed.value) };
+  return {
+    ok: true,
+    text: JSON.stringify(parsed.value),
+    value: parsed.value,
+    bigNumbers: parsed.bigNumbers,
+  };
 }
 
 /** 递归按字典序排序对象键（数组元素位置不变）。 */
@@ -372,22 +412,57 @@ function walk(before: unknown, after: unknown, path: string, changes: JsonChange
   }
 
   if (beforeArr && afterArr) {
-    const length = Math.max(before.length, after.length);
-    for (let i = 0; i < length; i += 1) {
-      const childPath = `${path}[${i}]`;
-      if (i >= before.length) {
-        changes.push({ path: childPath, type: 'added', after: after[i] });
-      } else if (i >= after.length) {
-        changes.push({ path: childPath, type: 'removed', before: before[i] });
-      } else {
-        walk(before[i], after[i], childPath, changes);
-      }
-    }
+    arrayDiff(before, after, path, changes);
     return;
   }
 
   if (!deepEqual(before, after)) {
     changes.push({ path, type: 'changed', before, after });
+  }
+}
+
+/**
+ * 数组 LCS diff：按最长公共子序列对齐元素（deepEqual 判等），
+ * 只输出真正的删除/新增，避免“中间插入一个元素导致后面全部变更”。
+ */
+function arrayDiff(
+  before: unknown[],
+  after: unknown[],
+  path: string,
+  changes: JsonChange[],
+): void {
+  const n = before.length;
+  const m = after.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i -= 1) {
+    for (let j = m - 1; j >= 0; j -= 1) {
+      dp[i][j] = deepEqual(before[i], after[j])
+        ? dp[i + 1][j + 1] + 1
+        : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (deepEqual(before[i], after[j])) {
+      i += 1;
+      j += 1;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      changes.push({ path: `${path}[${i}]`, type: 'removed', before: before[i] });
+      i += 1;
+    } else {
+      changes.push({ path: `${path}[${j}]`, type: 'added', after: after[j] });
+      j += 1;
+    }
+  }
+  while (i < n) {
+    changes.push({ path: `${path}[${i}]`, type: 'removed', before: before[i] });
+    i += 1;
+  }
+  while (j < m) {
+    changes.push({ path: `${path}[${j}]`, type: 'added', after: after[j] });
+    j += 1;
   }
 }
 

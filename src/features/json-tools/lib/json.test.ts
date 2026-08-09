@@ -7,6 +7,7 @@ import {
   minifyJson,
   offsetToLineCol,
   parseJson,
+  parseJsonStrict,
   shortValue,
   sortObjectKeys,
   validateJson,
@@ -94,9 +95,21 @@ describe('diffJson', () => {
     expect(changes).toContainEqual({ path: '$.b', type: 'added', after: 2 });
   });
 
-  it('数组按索引对比', () => {
+  it('数组尾部新增按 LCS 对齐', () => {
     const changes = diffJson([1, 2], [1, 2, 3]);
     expect(changes).toEqual([{ path: '$[2]', type: 'added', after: 3 }]);
+  });
+
+  it('数组中间插入不误报为后续变更', () => {
+    const changes = diffJson([1, 3], [1, 2, 3]);
+    expect(changes).toEqual([{ path: '$[1]', type: 'added', after: 2 }]);
+  });
+
+  it('数组元素重排显示为删除+新增', () => {
+    const changes = diffJson([1, 2, 3], [1, 3, 2]);
+    expect(changes).toContainEqual({ path: '$[1]', type: 'removed', before: 2 });
+    expect(changes).toContainEqual({ path: '$[2]', type: 'added', after: 2 });
+    expect(changes.some((c) => c.type === 'changed')).toBe(false);
   });
 
   it('嵌套路径与特殊键名', () => {
@@ -113,6 +126,27 @@ describe('diffJson', () => {
 });
 
 describe('工具函数', () => {
+  it('超出 2^53 的大整数被标记', () => {
+    const result = parseJsonStrict('{"a": 9007199254740993}');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.bigNumbers).toEqual([
+        { line: 1, column: 7, raw: '9007199254740993' },
+      ]);
+    }
+  });
+
+  it('安全整数与小数不误报', () => {
+    const result = parseJsonStrict('{"a": 9007199254740991, "b": 1.5}');
+    expect(result.ok && result.bigNumbers).toHaveLength(0);
+  });
+
+  it('validateJson 携带大数信息', () => {
+    const result = validateJson('{"a": 12345678901234567890}');
+    expect(result.ok).toBe(true);
+    expect(result.bigNumbers).toHaveLength(1);
+  });
+
   it('offsetToLineCol 换算行列', () => {
     expect(offsetToLineCol('ab\ncd\nef', 5)).toEqual({ line: 2, column: 3 });
   });

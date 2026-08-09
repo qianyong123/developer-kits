@@ -5,7 +5,9 @@ export const jsonMessages = {
   modeMinify: '压缩',
   modeValidate: '校验',
   modeDiff: '对比',
+  startCompare: '开始对比',
   inputLabel: '输入',
+  outputLabel: '输出',
   beforeLabel: '修改前',
   afterLabel: '修改后',
   inputPlaceholder: '粘贴 JSON 或导入文件…',
@@ -15,11 +17,15 @@ export const jsonMessages = {
   importFile: '导入文件',
   loadSample: '示例',
   copy: '复制',
-  copied: '已复制',
+  copySuccess: '复制成功',
+  copyFailed: '复制失败，请手动选择复制',
   download: '下载',
   clear: '清空',
   indent: '缩进',
   sortKeys: '排序键',
+  settingsHelp: {
+    sortKeys: '格式化时按字典序排列对象键，输出更稳定、便于阅读与对比。',
+  },
   valid: 'JSON 合法',
   invalid: 'JSON 不合法',
   errorEmpty: '请输入 JSON 内容',
@@ -27,6 +33,8 @@ export const jsonMessages = {
   warningsTitle: '重复键警告',
   duplicateKey: (key: string, firstLine: number, secondLine: number) =>
     `键 "${key}" 重复：首次出现在第 ${firstLine} 行，再次出现在第 ${secondLine} 行`,
+  bigNumberWarning: (count: number) =>
+    `检测到 ${count} 个超出安全整数范围（2^53）的大数，输出可能丢失精度`,
   diffSummary: (added: number, removed: number, changed: number) =>
     `新增 ${added} · 删除 ${removed} · 修改 ${changed}`,
   diffNone: '两个 JSON 完全一致',

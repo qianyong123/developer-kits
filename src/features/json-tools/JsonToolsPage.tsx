@@ -1,10 +1,14 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { messages } from '@/shared/i18n/zh';
 import { DownloadIcon } from '@/shared/components/Icons';
+import HelpTip from '@/shared/components/HelpTip/HelpTip';
 import Notice from '@/shared/components/Notice/Notice';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
 import { usePersistedState } from '@/shared/hooks/usePersistedState';
 import { downloadUrl } from '@/shared/lib/download';
+import { copyText } from '@/shared/lib/clipboard';
+import { JsonView, defaultStyles } from 'react-json-view-lite';
+import 'react-json-view-lite/dist/index.css';
 import {
   diffJson,
   formatDiffReport,
@@ -13,6 +17,7 @@ import {
   parseJson,
   shortValue,
   validateJson,
+  type BigNumberInfo,
   type DuplicateKeyInfo,
   type JsonChange,
   type JsonError,
@@ -20,15 +25,75 @@ import {
 import styles from '@/features/json-tools/JsonToolsPage.module.css';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const EDITOR_PADDING_TOP = 12;
+const EDITOR_LINE_HEIGHT = 20.8; // 13px * 1.6，与 CSS 保持一致
+
+function loadDraft(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function saveDraft(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // 存储不可用/超限时静默
+  }
+}
 
 type JsonMode = 'format' | 'minify' | 'validate' | 'diff';
 
 type OutputState =
   | { kind: 'idle' }
   | { kind: 'error'; error: JsonError; side?: 'before' | 'after' }
-  | { kind: 'text'; text: string }
-  | { kind: 'valid'; duplicates: DuplicateKeyInfo[] }
+  | { kind: 'text'; text: string; value: unknown; bigNumbers: BigNumberInfo[] }
+  | { kind: 'valid'; duplicates: DuplicateKeyInfo[]; bigNumbers: BigNumberInfo[] }
   | { kind: 'diff'; changes: JsonChange[] };
+
+/** 带错误行高亮与自动滚动的 JSON 编辑器。 */
+function JsonEditor({
+  value,
+  onChange,
+  placeholder,
+  highlightLine,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  highlightLine?: number | null;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+
+  // 出错时滚动到对应行
+  useEffect(() => {
+    if (highlightLine == null || !ref.current) return;
+    ref.current.scrollTop = Math.max(0, (highlightLine - 1) * EDITOR_LINE_HEIGHT - 40);
+  }, [highlightLine]);
+
+  const highlightTop =
+    highlightLine == null
+      ? null
+      : EDITOR_PADDING_TOP + (highlightLine - 1) * EDITOR_LINE_HEIGHT - scrollTop;
+
+  return (
+    <div className={styles.editorBody}>
+      {highlightTop !== null && <div className={styles.errorLine} style={{ top: highlightTop }} />}
+      <textarea
+        ref={ref}
+        className={styles.textarea}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+        placeholder={placeholder}
+        spellCheck={false}
+      />
+    </div>
+  );
+}
 
 const MODES: Array<{ id: JsonMode; label: string }> = [
   { id: 'format', label: messages.json.modeFormat },
@@ -76,34 +141,33 @@ export default function JsonToolsPage() {
   const [mode, setMode] = useState<JsonMode>('format');
   const [indent, setIndent] = usePersistedState<number>('devkits.json.indent', 2);
   const [sortKeys, setSortKeys] = useState(false);
-  const [input, setInput] = useState('');
-  const [before, setBefore] = useState('');
-  const [after, setAfter] = useState('');
+  const [input, setInput] = useState(() => loadDraft('devkits.json.input'));
+  const [before, setBefore] = useState(() => loadDraft('devkits.json.before'));
+  const [after, setAfter] = useState(() => loadDraft('devkits.json.after'));
   const [output, setOutput] = useState<OutputState>({ kind: 'idle' });
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const run = useCallback(() => {
-    if (mode === 'diff') {
-      if (before.trim() === '' && after.trim() === '') {
-        setOutput({ kind: 'idle' });
-        return;
-      }
-      const parsedBefore = parseJson(before);
-      const parsedAfter = parseJson(after);
-      if (!parsedBefore.ok) {
-        setOutput({ kind: 'error', error: parsedBefore.error, side: 'before' });
-        return;
-      }
-      if (!parsedAfter.ok) {
-        setOutput({ kind: 'error', error: parsedAfter.error, side: 'after' });
-        return;
-      }
-      setOutput({ kind: 'diff', changes: diffJson(parsedBefore.value, parsedAfter.value) });
+  const runDiff = useCallback(() => {
+    if (before.trim() === '' && after.trim() === '') {
+      setOutput({ kind: 'idle' });
       return;
     }
+    const parsedBefore = parseJson(before);
+    const parsedAfter = parseJson(after);
+    if (!parsedBefore.ok) {
+      setOutput({ kind: 'error', error: parsedBefore.error, side: 'before' });
+      return;
+    }
+    if (!parsedAfter.ok) {
+      setOutput({ kind: 'error', error: parsedAfter.error, side: 'after' });
+      return;
+    }
+    setOutput({ kind: 'diff', changes: diffJson(parsedBefore.value, parsedAfter.value) });
+  }, [before, after]);
 
+  const run = useCallback(() => {
     if (input.trim() === '') {
       setOutput({ kind: 'idle' });
       return;
@@ -115,7 +179,11 @@ export default function JsonToolsPage() {
         setOutput({ kind: 'error', error: result.error! });
         return;
       }
-      setOutput({ kind: 'valid', duplicates: result.duplicates ?? [] });
+      setOutput({
+        kind: 'valid',
+        duplicates: result.duplicates ?? [],
+        bigNumbers: result.bigNumbers ?? [],
+      });
       return;
     }
 
@@ -125,16 +193,32 @@ export default function JsonToolsPage() {
       setOutput({ kind: 'error', error: result.error });
       return;
     }
-    setOutput({ kind: 'text', text: result.text });
-  }, [mode, input, before, after, indent, sortKeys]);
+    setOutput({
+      kind: 'text',
+      text: result.text,
+      value: result.value,
+      bigNumbers: result.bigNumbers,
+    });
+  }, [mode, input, indent, sortKeys]);
 
+  // 格式化/压缩/校验自动处理；对比模式改为点击“开始对比”手动触发
   useDebouncedEffect(
     () => {
-      run();
+      if (mode !== 'diff') run();
     },
-    [mode, input, before, after, indent, sortKeys],
+    [mode, input, indent, sortKeys],
     250,
   );
+
+  // 进入对比模式时清空旧输出，等待手动触发
+  useEffect(() => {
+    if (mode === 'diff') setOutput({ kind: 'idle' });
+  }, [mode]);
+
+  // 草稿自动保存：防抖写入，刷新/误关不丢
+  useDebouncedEffect(() => saveDraft('devkits.json.input', input), [input], 500);
+  useDebouncedEffect(() => saveDraft('devkits.json.before', before), [before], 500);
+  useDebouncedEffect(() => saveDraft('devkits.json.after', after), [after], 500);
 
   const handleFile = useCallback(
     (file: File) => {
@@ -168,6 +252,13 @@ export default function JsonToolsPage() {
     setAfter('');
     setOutput({ kind: 'idle' });
     setNotice(null);
+    for (const key of ['devkits.json.input', 'devkits.json.before', 'devkits.json.after']) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // 忽略
+      }
+    }
   }, []);
 
   const reportText = useMemo(() => {
@@ -189,12 +280,11 @@ export default function JsonToolsPage() {
 
   const copyOutput = useCallback(async () => {
     if (!reportText) return;
-    try {
-      await navigator.clipboard.writeText(reportText);
+    if (await copyText(reportText)) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // 剪贴板不可用时静默
+    } else {
+      setNotice(messages.json.copyFailed);
     }
   }, [reportText]);
 
@@ -228,7 +318,24 @@ export default function JsonToolsPage() {
       case 'text':
         return (
           <>
-            <pre className={styles.outputText}>{output.text}</pre>
+            {output.bigNumbers.length > 0 && (
+              <div className={styles.warnings}>
+                {messages.json.bigNumberWarning(output.bigNumbers.length)}
+              </div>
+            )}
+            {mode === 'format' &&
+            output.value !== null &&
+            typeof output.value === 'object' ? (
+              <div className={styles.jsonViewer}>
+                <JsonView
+                  data={output.value as object}
+                  style={defaultStyles}
+                  shouldExpandNode={(level) => level < 2}
+                />
+              </div>
+            ) : (
+              <pre className={styles.outputText}>{output.text}</pre>
+            )}
             <div className={styles.outputMeta}>
               {messages.json.sizeLabel}: {output.text.length} B · {messages.json.linesLabel}:{' '}
               {output.text.split('\n').length}
@@ -239,6 +346,11 @@ export default function JsonToolsPage() {
         return (
           <div className={styles.validBox}>
             <strong className={styles.validTitle}>✓ {messages.json.valid}</strong>
+            {output.bigNumbers.length > 0 && (
+              <div className={styles.warnings}>
+                {messages.json.bigNumberWarning(output.bigNumbers.length)}
+              </div>
+            )}
             {output.duplicates.length > 0 && (
               <div className={styles.warnings}>
                 <strong>{messages.json.warningsTitle}</strong>
@@ -295,6 +407,13 @@ export default function JsonToolsPage() {
     }
   };
 
+  const inputErrorLine =
+    output.kind === 'error' && !output.side ? output.error.line ?? null : null;
+  const beforeErrorLine =
+    output.kind === 'error' && output.side === 'before' ? output.error.line ?? null : null;
+  const afterErrorLine =
+    output.kind === 'error' && output.side === 'after' ? output.error.line ?? null : null;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -309,9 +428,6 @@ export default function JsonToolsPage() {
             </button>
             <button className="btn" onClick={loadSample}>
               {messages.json.loadSample}
-            </button>
-            <button className="btn" disabled={!reportText} onClick={() => void copyOutput()}>
-              {copied ? messages.json.copied : messages.json.copy}
             </button>
             <button className="btn" disabled={!reportText} onClick={downloadOutput}>
               <DownloadIcon size={14} />
@@ -358,6 +474,7 @@ export default function JsonToolsPage() {
                 onChange={(e) => setSortKeys(e.target.checked)}
               />
               {messages.json.sortKeys}
+              <HelpTip text={messages.json.settingsHelp.sortKeys} />
             </label>
           </div>
         )}
@@ -368,39 +485,59 @@ export default function JsonToolsPage() {
           <>
             <div className={styles.editor}>
               <div className={styles.editorLabel}>{messages.json.beforeLabel}</div>
-              <textarea
-                className={styles.textarea}
+              <JsonEditor
                 value={before}
-                onChange={(e) => setBefore(e.target.value)}
+                onChange={setBefore}
                 placeholder={messages.json.beforePlaceholder}
-                spellCheck={false}
+                highlightLine={beforeErrorLine}
               />
             </div>
             <div className={styles.editor}>
               <div className={styles.editorLabel}>{messages.json.afterLabel}</div>
-              <textarea
-                className={styles.textarea}
+              <JsonEditor
                 value={after}
-                onChange={(e) => setAfter(e.target.value)}
+                onChange={setAfter}
                 placeholder={messages.json.afterPlaceholder}
-                spellCheck={false}
+                highlightLine={afterErrorLine}
               />
             </div>
-            <div className={styles.diffResult}>{renderOutput()}</div>
+            <div className={styles.diffResult}>
+              <div className={styles.diffToolbar}>
+                <button type="button" className="btn btn-primary" onClick={() => void runDiff()}>
+                  {messages.json.startCompare}
+                </button>
+              </div>
+              {renderOutput()}
+            </div>
           </>
         ) : (
           <>
             <div className={styles.editor}>
               <div className={styles.editorLabel}>{messages.json.inputLabel}</div>
-              <textarea
-                className={styles.textarea}
+              <JsonEditor
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={setInput}
                 placeholder={messages.json.inputPlaceholder}
-                spellCheck={false}
+                highlightLine={inputErrorLine}
               />
             </div>
-            <div className={styles.output}>{renderOutput()}</div>
+            <div className={styles.editor}>
+              <div className={styles.editorLabel}>
+                {messages.json.outputLabel}
+                {reportText && (
+                  <button
+                    type="button"
+                    className={styles.copyBtn}
+                    onClick={() => void copyOutput()}
+                  >
+                    {messages.json.copy}
+                  </button>
+                )}
+              </div>
+              <div className={styles.output}>
+                {renderOutput()}
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -416,6 +553,13 @@ export default function JsonToolsPage() {
           e.target.value = '';
         }}
       />
+
+      {copied && (
+        <div className={styles.toast} role="status">
+          <span className={styles.toastIcon}>✓</span>
+          {messages.json.copySuccess}
+        </div>
+      )}
     </div>
   );
 }
