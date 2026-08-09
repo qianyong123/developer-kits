@@ -1,6 +1,7 @@
 import { messages } from '../../../shared/i18n/zh';
 import { ChevronDownIcon } from '../../../shared/components/Icons';
 import HelpTip from '../../../shared/components/HelpTip/HelpTip';
+import { formatBytes, ratioPercent } from '../../../shared/lib/format';
 import type { FormatOption } from '../lib/encoders';
 import type { CompressSettings } from '../lib/types';
 import styles from './SettingsPanel.module.css';
@@ -31,6 +32,7 @@ interface Props {
   settings: CompressSettings;
   onChange: (settings: CompressSettings) => void;
   onReset: () => void;
+  totals: { count: number; original: number; compressed: number };
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
@@ -39,10 +41,19 @@ export default function SettingsPanel({
   settings,
   onChange,
   onReset,
+  totals,
   collapsed,
   onToggleCollapse,
 }: Props) {
   const set = (patch: Partial<CompressSettings>) => onChange({ ...settings, ...patch });
+
+  const saved = totals.original - totals.compressed;
+  const ratio =
+    totals.count > 0 && totals.original > 0
+      ? ratioPercent(totals.original, totals.compressed)
+      : '0%';
+  const savedPct =
+    totals.original > 0 ? Math.min(100, Math.max(0, (saved / totals.original) * 100)) : 0;
 
   return (
     <div className={styles.panel}>
@@ -192,6 +203,21 @@ export default function SettingsPanel({
                 onChange={(e) => set({ maxEdge: Math.max(0, Number(e.target.value) || 0) })}
               />
               <span className={styles.inputUnit}>px</span>
+            </div>
+          </div>
+
+          <div className={styles.saveCard}>
+            <div className={styles.saveHeader}>
+              <span className={styles.saveLabel}>{messages.image.estimatedSave}</span>
+              <strong className={styles.saveValue}>{formatBytes(Math.max(0, saved))}</strong>
+              <strong className={styles.saveRatio}>{ratio}</strong>
+            </div>
+            <div className={styles.saveBar}>
+              <div className={styles.saveFill} style={{ width: `${savedPct}%` }} />
+            </div>
+            <div className={styles.saveMeta}>
+              {messages.image.saveRate}: {formatBytes(totals.original)} →{' '}
+              {formatBytes(totals.compressed)}
             </div>
           </div>
 

@@ -273,14 +273,6 @@ export default function SvgCompressorPage() {
           </div>
         </div>
 
-        {notice && (
-          <div className={styles.notice}>
-            <span>{notice}</span>
-            <button className={styles.noticeClose} onClick={() => setNotice(null)}>
-              ✕
-            </button>
-          </div>
-        )}
       </header>
 
       <div className={styles.columns}>
@@ -294,6 +286,15 @@ export default function SvgCompressorPage() {
             features={[messages.svg.featureLocal]}
             onFiles={addFiles}
           />
+
+          {notice && (
+            <div className={styles.notice}>
+              <span>{notice}</span>
+              <button className={styles.noticeClose} onClick={() => setNotice(null)}>
+                ✕
+              </button>
+            </div>
+          )}
 
           <button
             className={styles.mobileSettingsToggle}

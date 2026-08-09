@@ -25,6 +25,7 @@ import styles from './ImageCompressorPage.module.css';
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALPHA_TYPES = new Set(['image/png', 'image/webp', 'image/gif']);
 const CONCURRENCY = 2;
+const MAX_FILES_PER_BATCH = 50;
 
 const IMAGE_PICK_TYPES = [
   {
@@ -176,8 +177,15 @@ export default function ImageCompressorPage() {
   const addFiles = useCallback(async (files: File[]) => {
     const notices: string[] = [];
 
-    const supported = files.filter((f) => ALLOWED_TYPES.includes(f.type));
-    const unsupported = files.filter((f) => !ALLOWED_TYPES.includes(f.type));
+    // 总数最多 50 张（支持与不支持都计入）：超出部分忽略并提示
+    const remaining = Math.max(0, MAX_FILES_PER_BATCH - itemsRef.current.length);
+    const limited = files.slice(0, remaining);
+    if (limited.length !== files.length) {
+      notices.push(messages.image.fileCountExceeded(files.length - limited.length));
+    }
+
+    const supported = limited.filter((f) => ALLOWED_TYPES.includes(f.type));
+    const unsupported = limited.filter((f) => !ALLOWED_TYPES.includes(f.type));
 
     // 支持格式：大小过滤
     const sizeOk = supported.filter((f) => f.size <= MAX_FILE_SIZE);
@@ -336,14 +344,6 @@ export default function ImageCompressorPage() {
           </div>
         </div>
 
-        {notice && (
-          <div className={styles.notice}>
-            <span>{notice}</span>
-            <button className={styles.noticeClose} onClick={() => setNotice(null)}>
-              ✕
-            </button>
-          </div>
-        )}
       </header>
 
       <div className={styles.columns}>
@@ -358,6 +358,15 @@ export default function ImageCompressorPage() {
             filter={(files) => files.filter((f) => f.type.startsWith('image/'))}
             onFiles={addFiles}
           />
+
+          {notice && (
+            <div className={styles.notice}>
+              <span>{notice}</span>
+              <button className={styles.noticeClose} onClick={() => setNotice(null)}>
+                ✕
+              </button>
+            </div>
+          )}
 
           <button
             className={styles.mobileSettingsToggle}
@@ -432,6 +441,11 @@ export default function ImageCompressorPage() {
             settings={settings}
             onChange={setSettings}
             onReset={() => setSettings(DEFAULT_SETTINGS)}
+            totals={{
+              count: doneItems.length,
+              original: totalOriginal,
+              compressed: totalCompressed,
+            }}
             collapsed={mobileSettingsOpen ? false : settingsCollapsed}
             onToggleCollapse={() => setSettingsCollapsed((v) => !v)}
           />
