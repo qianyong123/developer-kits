@@ -55,6 +55,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.routeFallback {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 14px;
+}
+
 button,
 input,
 select {

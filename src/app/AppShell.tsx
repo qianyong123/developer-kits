@@ -1,28 +1,17 @@
 import { useState } from 'react';
-import type { ComponentType, ReactNode, SVGProps } from 'react';
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { messages } from '@/shared/i18n/zh';
-import {
-  BracesIcon,
-  BrandIcon,
-  CodeIcon,
-  ImageIcon,
-  MenuIcon,
-} from '@/shared/components/Icons';
+import { BrandIcon, MenuIcon } from '@/shared/components/Icons';
+import { tools } from '@/app/tools';
 import styles from '@/app/AppShell.module.css';
 
-type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
-
-const NAV_ITEMS: Array<{
-  to: string;
-  label: string;
-  icon: IconType;
-  end?: boolean;
-}> = [
-  { to: '/', label: messages.app.navImage, icon: ImageIcon, end: true },
-  { to: '/svg', label: messages.app.navSvg, icon: CodeIcon },
-  { to: '/json', label: messages.app.navJson, icon: BracesIcon },
-];
+const NAV_ITEMS = tools.map((tool) => ({
+  to: tool.path,
+  label: messages.app[tool.titleKey],
+  icon: tool.icon,
+  end: tool.end,
+}));
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);

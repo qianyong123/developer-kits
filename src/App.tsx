@@ -1,18 +1,19 @@
+import { Suspense } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import AppShell from '@/app/AppShell';
-import ImageCompressorPage from '@/features/image-compressor/ImageCompressorPage';
-import JsonToolsPage from '@/features/json-tools/JsonToolsPage';
-import SvgCompressorPage from '@/features/svg-compressor/SvgCompressorPage';
+import { tools } from '@/app/tools';
 
 export default function App() {
   return (
     <HashRouter>
       <AppShell>
-        <Routes>
-          <Route path="/" element={<ImageCompressorPage />} />
-          <Route path="/svg" element={<SvgCompressorPage />} />
-          <Route path="/json" element={<JsonToolsPage />} />
-        </Routes>
+        <Suspense fallback={<div className="routeFallback">加载中…</div>}>
+          <Routes>
+            {tools.map((tool) => (
+              <Route key={tool.id} path={tool.path} element={<tool.Component />} />
+            ))}
+          </Routes>
+        </Suspense>
       </AppShell>
     </HashRouter>
   );
