@@ -4,6 +4,7 @@
  * 因为现代 V8 的 JSON.parse 错误信息不再包含位置，无法精确报行列。
  * 纯 TS、无 React 依赖，可独立单测。
  */
+import JSON5 from 'json5';
 
 export interface JsonError {
   message: string;
@@ -37,6 +38,18 @@ export type JsonParseResult = { ok: true; value: unknown } | { ok: false; error:
 export type JsonTransformResult =
   | { ok: true; text: string; value: unknown; bigNumbers: BigNumberInfo[] }
   | { ok: false; error: JsonError };
+
+export interface JsonParseOptions {
+  /** 宽松模式（JSONC/JSON5）：允许注释、尾逗号、单引号、无引号键 */
+  lenient?: boolean;
+}
+
+export interface JsonTransformOptions extends JsonParseOptions {
+  indent?: number;
+  sortKeys?: boolean;
+  /** 字符串内套 JSON 时自动解包 */
+  unwrapString?: boolean;
+}
 
 export interface JsonChange {
   path: string;
@@ -301,11 +314,11 @@ class JsonParser {
 }
 
 /** 严格解析 JSON：返回解析值与重复键清单，或带精确行列的语法错误。 */
-export function parseJsonStrict(
-  text: string,
-):
+export type JsonStrictResult =
   | { ok: true; value: unknown; duplicates: DuplicateKeyInfo[]; bigNumbers: BigNumberInfo[] }
-  | { ok: false; error: JsonError } {
+  | { ok: false; error: JsonError };
+
+export function parseJsonStrict(text: string): JsonStrictResult {
   if (text.trim() === '') return { ok: false, error: { message: 'empty' } };
   try {
     const parser = new JsonParser(text);
@@ -323,59 +336,80 @@ export function parseJsonStrict(
 }
 
 /** 解析 JSON（校验模式之外也可用）；空输入视为错误。 */
-export function parseJson(text: string): JsonParseResult {
+export function parseJson(text: string, options: JsonParseOptions = {}): JsonParseResult {
+  if (options.lenient) return parseJsonLenient(text);
   const result = parseJsonStrict(text);
   if (!result.ok) return result;
   return { ok: true, value: result.value };
 }
 
+/** 宽松解析（JSONC/JSON5）：返回结构与严格解析一致（重复键/大数不检测）。 */
+export function parseJsonLenient(text: string): JsonStrictResult {
+  if (text.trim() === '') return { ok: false, error: { message: 'empty' } };
+  try {
+    return { ok: true, value: JSON5.parse(text), duplicates: [], bigNumbers: [] };
+  } catch (err) {
+    const e = err as { message?: string; lineNumber?: number; columnNumber?: number };
+    return {
+      ok: false,
+      error: {
+        message: e.message ?? String(err),
+        line: e.lineNumber,
+        column: e.columnNumber,
+      },
+    };
+  }
+}
+
 /** 校验 JSON：合法性 + 重复键检测。 */
-export function validateJson(text: string, unwrapString = false): ValidateResult {
+export function validateJson(
+  text: string,
+  options: JsonTransformOptions = {},
+): ValidateResult {
   const size = text.length;
   const lines = countLines(text);
-  const parsed = parseJsonStrict(text);
+  const parsed = options.lenient ? parseJsonLenient(text) : parseJsonStrict(text);
   if (!parsed.ok) return { ok: false, error: parsed.error, size, lines };
-  if (unwrapString && typeof parsed.value === 'string') {
+  let duplicates = parsed.duplicates;
+  let bigNumbers = parsed.bigNumbers;
+  if (options.unwrapString && typeof parsed.value === 'string') {
     const inner = parsed.value.trim();
     if (inner.startsWith('{') || inner.startsWith('[')) {
-      const innerParsed = parseJsonStrict(inner);
+      const innerParsed = options.lenient ? parseJsonLenient(inner) : parseJsonStrict(inner);
       if (!innerParsed.ok) {
         return { ok: false, error: innerParsed.error, size, lines };
       }
-      return {
-        ok: true,
-        size,
-        lines,
-        duplicates: innerParsed.duplicates,
-        bigNumbers: innerParsed.bigNumbers,
-      };
+      duplicates = innerParsed.duplicates;
+      bigNumbers = innerParsed.bigNumbers;
     }
   }
-  return { ok: true, size, lines, duplicates: parsed.duplicates, bigNumbers: parsed.bigNumbers };
+  return { ok: true, size, lines, duplicates, bigNumbers };
 }
 
 export function formatJson(
   text: string,
-  indent = 2,
-  sortKeys = false,
-  unwrapString = false,
+  options: JsonTransformOptions = {},
 ): JsonTransformResult {
-  const parsed = parseJsonStrict(text);
+  const parsed = options.lenient ? parseJsonLenient(text) : parseJsonStrict(text);
   if (!parsed.ok) return parsed;
-  const base = unwrapString ? unwrapJsonString(parsed.value) : parsed.value;
-  const value = sortKeys ? sortObjectKeys(base) : base;
+  const base = options.unwrapString
+    ? unwrapJsonString(parsed.value, options.lenient)
+    : parsed.value;
+  const value = options.sortKeys ? sortObjectKeys(base) : base;
   return {
     ok: true,
-    text: JSON.stringify(value, null, indent),
+    text: JSON.stringify(value, null, options.indent ?? 2),
     value,
     bigNumbers: parsed.bigNumbers,
   };
 }
 
-export function minifyJson(text: string, unwrapString = false): JsonTransformResult {
-  const parsed = parseJsonStrict(text);
+export function minifyJson(text: string, options: JsonTransformOptions = {}): JsonTransformResult {
+  const parsed = options.lenient ? parseJsonLenient(text) : parseJsonStrict(text);
   if (!parsed.ok) return parsed;
-  const value = unwrapString ? unwrapJsonString(parsed.value) : parsed.value;
+  const value = options.unwrapString
+    ? unwrapJsonString(parsed.value, options.lenient)
+    : parsed.value;
   return {
     ok: true,
     text: JSON.stringify(value),
@@ -388,11 +422,11 @@ export function minifyJson(text: string, unwrapString = false): JsonTransformRes
  * 若解析值是“字符串里套着合法 JSON”（如 "{\"a\":1}"），返回解包后的内层值；
  * 否则原样返回。用于“自动解包”选项：从日志/配置复制的带引号 JSON 可直接处理。
  */
-export function unwrapJsonString(value: unknown): unknown {
+export function unwrapJsonString(value: unknown, lenient = false): unknown {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return value;
-  const inner = parseJsonStrict(trimmed);
+  const inner = parseJson(trimmed, { lenient });
   return inner.ok ? inner.value : value;
 }
 
@@ -572,4 +606,71 @@ export function formatDiffReport(changes: JsonChange[]): string {
       return `${change.path}: ${before} → ${after}`;
     })
     .join('\n');
+}
+
+/**
+ * 由 JSON 值生成 TypeScript 接口。
+ * 数组取首个元素推断元素类型（空数组输出 unknown[]）；
+ * 对象命名规则：根为 rootName，嵌套按父名+字段名（数组元素追加 Item）。
+ */
+export function jsonToTsTypes(value: unknown, rootName = 'Root'): string {
+  const interfaces = new Map<string, string>();
+  const order: string[] = [];
+  const nameByObject = new Map<object, string>();
+  const usedNames = new Set<string>();
+
+  const nextName = (base: string): string => {
+    let name = base;
+    let index = 2;
+    while (usedNames.has(name)) {
+      name = `${base}${index}`;
+      index += 1;
+    }
+    usedNames.add(name);
+    return name;
+  };
+
+  const typeOf = (current: unknown, nameHint: string): string => {
+    if (current === null) return 'null';
+    if (Array.isArray(current)) {
+      if (current.length === 0) return 'unknown[]';
+      return `${typeOf(current[0], `${nameHint}Item`)}[]`;
+    }
+    switch (typeof current) {
+      case 'string':
+        return 'string';
+      case 'number':
+        return 'number';
+      case 'boolean':
+        return 'boolean';
+      case 'object': {
+        const record = current as Record<string, unknown>;
+        const existing = nameByObject.get(record);
+        if (existing) return existing;
+        const name = nextName(nameHint);
+        nameByObject.set(record, name);
+        order.push(name);
+        const fields = Object.entries(record)
+          .map(([key, fieldValue]) => {
+            const safeKey = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)
+              ? key
+              : JSON.stringify(key);
+            const fieldName = `${name}${capitalize(key)}`;
+            return `  ${safeKey}: ${typeOf(fieldValue, fieldName)};`;
+          })
+          .join('\n');
+        interfaces.set(name, `export interface ${name} {\n${fields}\n}`);
+        return name;
+      }
+      default:
+        return 'unknown';
+    }
+  };
+
+  typeOf(value, rootName);
+  return order.map((name) => interfaces.get(name)).join('\n\n');
+}
+
+function capitalize(text: string): string {
+  return text.length > 0 ? text[0].toUpperCase() + text.slice(1) : text;
 }

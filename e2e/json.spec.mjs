@@ -1,36 +1,29 @@
 /**
- * JSON 工具全量端到端测试（真实浏览器）
+ * JSON 工具全量端到端测试（Playwright Test）
  *
- * 覆盖：
- *  - 格式化（缩进 2/4、排序键、unicode/转义）
- *  - 压缩
- *  - 校验（合法、重复键、数组不误报、各种语法错误行列定位）
- *  - 结构对比（增删改、数组、嵌套特殊键、类型变化、一侧非法、完全一致）
- *  - 导入文件（正常 + 超 5MB）、示例、复制、下载、清空
- *  - 移动端布局、无外部请求、无页面错误
+ * 覆盖：格式化（树形视图/缩进/排序键/解包/宽松模式）、压缩、校验（重复键/
+ * 大数/行列定位）、结构对比（LCS/增删改/一侧非法）、类型生成、导入/示例/
+ * 复制/下载/清空、移动端布局、无外部请求与页面错误。
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium } from 'playwright';
+import { expect, test } from '@playwright/test';
 
-const BASE_URL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:5173/#/json';
-const OUT_DIR = process.env.E2E_OUT_DIR ?? join(process.cwd(), '.e2e-out');
+const OUT_DIR = join(process.cwd(), '.e2e-out');
 mkdirSync(OUT_DIR, { recursive: true });
 
-const results = [];
-const failures = [];
-const pageErrors = [];
-const externalRequests = [];
+test('JSON 工具全量测试', async ({ browser }) => {
+  const results = [];
+  const failures = [];
+  const pageErrors = [];
+  const externalRequests = [];
 
-function ok(name, pass, detail = '') {
-  results.push({ name, pass, detail });
-  if (!pass) failures.push(`${name}${detail ? ` — ${detail}` : ''}`);
-  console.log(`[${pass ? 'PASS' : 'FAIL'}] ${name}${detail ? `  ${detail}` : ''}`);
-}
+  const ok = (name, pass, detail = '') => {
+    results.push({ name, pass, detail });
+    if (!pass) failures.push(`${name}${detail ? ` — ${detail}` : ''}`);
+    console.log(`[${pass ? 'PASS' : 'FAIL'}] ${name}${detail ? `  ${detail}` : ''}`);
+  };
 
-const browser = await chromium.launch({ channel: 'msedge', headless: true });
-
-try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     permissions: ['clipboard-read', 'clipboard-write'],
@@ -47,12 +40,11 @@ try {
     }
   });
 
-  await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:5173/#/json', { waitUntil: 'networkidle' });
 
   const modeBtn = (i) => page.locator('[class*="modes"] button').nth(i);
   const textarea = (i = 0) => page.locator('[class*="textarea"]').nth(i);
   const toolbarBtn = (i) => page.locator('[class*="toolbar"] button').nth(i);
-
   const outputText = () =>
     page.evaluate(() => document.querySelector('[class*="outputText"]')?.textContent ?? null);
   const viewerText = () =>
@@ -78,7 +70,7 @@ try {
   const wait = (ms = 650) => page.waitForTimeout(ms);
   const startCompare = () => page.getByRole('button', { name: '开始对比', exact: true }).click();
 
-  // ---- 1. 格式化 ----
+  // ---- 1. 格式化（树形视图） ----
   await modeBtn(0).click();
   await textarea().fill('{"b":1,"a":[1,2],"c":{"x":true}}');
   await wait();
@@ -98,14 +90,14 @@ try {
 
   await page.locator('[class*="options"] button').nth(1).click(); // 缩进 4
   await wait();
-  await page.locator('[class*="copyBtn"]').click(); // 复制格式化文本验证缩进
+  await page.locator('[class*="copyBtn"]').click();
   await wait(300);
   const indentClipboard = await page.evaluate(() =>
     navigator.clipboard.readText().catch(() => ''),
   );
   ok('格式化：缩进 4 作用于输出文本', indentClipboard.includes('\n    "b"'), indentClipboard.slice(0, 40));
 
-  await page.locator('[class*="checkbox"] input').nth(0).check(); // 排序键（第 0 个复选框）
+  await page.locator('[class*="checkbox"] input').nth(0).check(); // 排序键
   await wait();
   text = await viewerText();
   ok(
@@ -161,21 +153,45 @@ try {
     await textarea().fill(input);
     await wait();
     const e = await errorState();
-    const pass =
+    ok(
+      `校验错误：${label}`,
       e.invalid === 'JSON 不合法' &&
-      (e.msg ?? '').includes(msgKeyword) &&
-      (e.pos ?? '').includes(`第 ${line} 行`);
-    ok(`校验错误：${label}`, pass, JSON.stringify(e));
+        (e.msg ?? '').includes(msgKeyword) &&
+        (e.pos ?? '').includes(`第 ${line} 行`),
+      JSON.stringify(e),
+    );
   }
 
-  await textarea().fill('   ');
+  await textarea().fill('{"a": 9007199254740993}');
   await wait();
-  const idleAfterEmpty = await page.evaluate(
-    () => !!document.querySelector('[class*="placeholder"]'),
+  const bigNumWarn = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('[class*="warnings"]')).some((e) =>
+      e.textContent.includes('大数'),
+    ),
   );
-  ok('校验：空输入不报错（待输入）', idleAfterEmpty);
+  ok('校验：大数精度提示', bigNumWarn);
 
-  // ---- 4. 结构对比 ----
+  // ---- 4. 宽松模式（JSONC） ----
+  await modeBtn(0).click();
+  await page.locator('[class*="checkbox"] input').nth(2).check(); // 宽松模式
+  await textarea().fill('{ a: 1, // 注释\n  b: [1, 2,], }');
+  await wait();
+  text = await viewerText();
+  ok('宽松模式：JSONC 解析为树形视图', text !== null && text.includes('a:1') && text.includes('b:[1,2]'), (text ?? '').slice(0, 60));
+  await page.locator('[class*="checkbox"] input').nth(2).uncheck();
+
+  // ---- 5. 类型生成 ----
+  await modeBtn(4).click();
+  await textarea().fill('{"name":"devkits","stats":{"n":1}}');
+  await wait();
+  text = await outputText();
+  ok(
+    '类型生成：输出 TS 接口',
+    text !== null && text.includes('export interface Root') && text.includes('stats: RootStats'),
+    (text ?? '').slice(0, 80),
+  );
+
+  // ---- 6. 结构对比 ----
   await modeBtn(3).click();
   await textarea(0).fill('{"a":1,"b":2}');
   await textarea(1).fill('{"a":1,"c":3}');
@@ -188,12 +204,12 @@ try {
     JSON.stringify(d),
   );
 
-  await textarea(0).fill('[1,2,3]');
-  await textarea(1).fill('[1,2]');
+  await textarea(0).fill('[1,3]');
+  await textarea(1).fill('[1,2,3]');
   await startCompare();
   await wait(300);
   d = await diffState();
-  ok('对比：数组删除尾部元素', d.rows === 1 && (d.summary ?? '').includes('删除 1'), JSON.stringify(d));
+  ok('对比：数组 LCS 中间插入', d.rows === 1 && (d.summary ?? '').includes('新增 1'), JSON.stringify(d));
 
   await textarea(0).fill('{"a":"1"}');
   await textarea(1).fill('{"a":1}');
@@ -206,10 +222,11 @@ try {
   await textarea(1).fill('{"a.b":{"x":[1,2]}}');
   await startCompare();
   await wait(300);
-  const specialPath = await page.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll('[class*="changePath"]'));
-    return rows.map((r) => r.textContent).join(',');
-  });
+  const specialPath = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('[class*="changePath"]'))
+      .map((r) => r.textContent)
+      .join(','),
+  );
   ok('对比：嵌套特殊键名路径', specialPath === '$["a.b"].x[1]', specialPath);
 
   await textarea(0).fill('{"a":1}');
@@ -226,7 +243,7 @@ try {
   const sideError = await errorState();
   ok('对比：右侧非法时标注错误侧', sideError.invalid === 'JSON 不合法' && sideError.side !== null, JSON.stringify(sideError));
 
-  // ---- 5. 导入文件 ----
+  // ---- 7. 导入文件 ----
   const fixtureDir = join(process.env.TEMP ?? 'C:\\Users\\52514\\AppData\\Local\\Temp', 'devkits-json-fixtures');
   mkdirSync(fixtureDir, { recursive: true });
   const smallJson = join(fixtureDir, 'sample.json');
@@ -234,7 +251,7 @@ try {
   const bigJson = join(fixtureDir, 'big.json');
   writeFileSync(bigJson, `{"padding": "${'x'.repeat(6 * 1024 * 1024)}"}`);
 
-  await modeBtn(1).click(); // 压缩模式
+  await modeBtn(1).click();
   await page.setInputFiles('input[type="file"]', smallJson);
   await wait();
   text = await outputText();
@@ -247,8 +264,8 @@ try {
   );
   ok('导入文件：超过 5MB 提示并忽略', tooLarge);
 
-  // ---- 6. 示例 / 清空 ----
-  await toolbarBtn(1).click(); // 示例
+  // ---- 8. 示例 / 清空 / 复制 / 下载 ----
+  await toolbarBtn(1).click();
   await wait();
   const sampleLoaded = await page.evaluate(() => {
     const ta = document.querySelector('[class*="textarea"]');
@@ -256,17 +273,16 @@ try {
   });
   ok('示例：加载示例 JSON', sampleLoaded);
 
-  await toolbarBtn(3).click(); // 清空（导入 0 · 示例 1 · 下载 2 · 清空 3）
+  await toolbarBtn(3).click();
   await wait();
   const cleared = await page.evaluate(
     () => document.querySelector('[class*="textarea"]')?.value === '' && !!document.querySelector('[class*="placeholder"]'),
   );
   ok('清空：输入与输出复位', cleared);
 
-  // ---- 7. 复制 / 下载 ----
   await textarea().fill('{"a":1}');
   await wait();
-  await page.locator('[class*="copyBtn"]').click(); // 输出面板内的复制按钮
+  await page.locator('[class*="copyBtn"]').click();
   await wait(300);
   const toastText = await page.evaluate(() =>
     document.querySelector('[class*="toast"]')?.textContent ?? null,
@@ -280,7 +296,7 @@ try {
 
   const [download] = await Promise.all([
     page.waitForEvent('download', { timeout: 30_000 }),
-    toolbarBtn(2).click(), // 导入 0 · 示例 1 · 下载 2 · 清空 3
+    toolbarBtn(2).click(),
   ]);
   const downloadPath = join(OUT_DIR, 'json-download.json');
   await download.saveAs(downloadPath);
@@ -291,11 +307,6 @@ try {
     `${download.suggestedFilename()} / ${downloaded.slice(0, 40)}`,
   );
 
-  // ---- 8. 桌面截图 ----
-  await toolbarBtn(1).click();
-  await wait();
-  await page.screenshot({ path: join(OUT_DIR, 'shots', 'json-e2e.png') });
-
   // ---- 9. 移动端 ----
   const mobileCtx = await browser.newContext({
     viewport: { width: 375, height: 812 },
@@ -304,7 +315,7 @@ try {
   });
   const mPage = await mobileCtx.newPage();
   mPage.on('pageerror', (e) => pageErrors.push(`json mobile pageerror: ${e.message}`));
-  await mPage.goto(BASE_URL, { waitUntil: 'networkidle' });
+  await mPage.goto('http://127.0.0.1:5173/#/json', { waitUntil: 'networkidle' });
   await mPage.locator('[class*="toolbar"] button').nth(1).click();
   await mPage.waitForTimeout(700);
   const mobile = await mPage.evaluate(() => {
@@ -328,14 +339,8 @@ try {
   ok('无页面/控制台错误', pageErrors.length === 0, pageErrors.join(' | '));
 
   await context.close();
-} finally {
-  await browser.close();
-}
 
-console.log(`\n===== JSON 工具全量测试：${results.length - failures.length}/${results.length} 通过 =====`);
-if (failures.length > 0) {
-  console.log('\n失败项：');
-  for (const f of failures) console.log(`  - ${f}`);
-  process.exit(1);
-}
-console.log('全部通过');
+  console.log(`\n===== JSON 工具全量测试：${results.length - failures.length}/${results.length} 通过 =====`);
+  expect(failures, failures.length ? `失败项：\n${failures.map((f) => `  - ${f}`).join('\n')}` : undefined).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});

@@ -5,5 +5,7 @@ dist/
 npm-debug.log*
 .codex/config.toml
 .e2e-out/
+test-results/
+playwright-report/
 vite-dev.out.log
 vite-dev.err.log

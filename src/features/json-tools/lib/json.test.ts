@@ -4,6 +4,7 @@ import {
   findDuplicateKeys,
   formatDiffReport,
   formatJson,
+  jsonToTsTypes,
   minifyJson,
   offsetToLineCol,
   parseJson,
@@ -36,7 +37,7 @@ describe('parseJson', () => {
 
 describe('formatJson / minifyJson', () => {
   it('格式化保留缩进', () => {
-    const result = formatJson('{"a":[1,2],"b":{"c":true}}', 2);
+    const result = formatJson('{"a":[1,2],"b":{"c":true}}', { indent: 2 });
     expect(result.ok && result.text).toContain('\n  "a"');
   });
 
@@ -134,19 +135,47 @@ describe('工具函数', () => {
   });
 
   it('formatJson 开启解包后输出内层对象', () => {
-    const result = formatJson('"{\\"a\\":1}"', 2, false, true);
+    const result = formatJson('"{\\"a\\":1}"', { indent: 2, unwrapString: true });
     expect(result.ok && result.text).toBe('{\n  "a": 1\n}');
   });
 
   it('validateJson 解包后校验内层重复键', () => {
-    const result = validateJson('"{\\"a\\":1,\\"a\\":2}"', true);
+    const result = validateJson('"{\\"a\\":1,\\"a\\":2}"', { unwrapString: true });
     expect(result.ok).toBe(true);
     expect(result.duplicates).toHaveLength(1);
   });
 
   it('validateJson 解包后内层非法则报错', () => {
-    const result = validateJson('"{bad}"', true);
+    const result = validateJson('"{bad}"', { unwrapString: true });
     expect(result.ok).toBe(false);
+  });
+
+  it('宽松模式解析 JSONC（注释/尾逗号/无引号键）', () => {
+    const result = formatJson('{ a: 1, // 注释\n  b: "x", }', { lenient: true });
+    expect(result.ok && result.text).toBe('{\n  "a": 1,\n  "b": "x"\n}');
+  });
+
+  it('宽松模式下严格输入同样可用', () => {
+    const result = minifyJson('{"a":1}', { lenient: true });
+    expect(result.ok && result.text).toBe('{"a":1}');
+  });
+
+  it('jsonToTsTypes 生成嵌套接口', () => {
+    const types = jsonToTsTypes({
+      name: '开发工具包',
+      count: 3,
+      active: true,
+      stats: { downloads: 1234 },
+      tools: [{ id: 1 }, { id: 2 }],
+      extra: null,
+    });
+    expect(types).toContain('export interface Root {');
+    expect(types).toContain('name: string;');
+    expect(types).toContain('stats: RootStats;');
+    expect(types).toContain('export interface RootStats {');
+    expect(types).toContain('tools: RootToolsItem[];');
+    expect(types).toContain('export interface RootToolsItem {');
+    expect(types).toContain('extra: null;');
   });
 
   it('超出 2^53 的大整数被标记', () => {

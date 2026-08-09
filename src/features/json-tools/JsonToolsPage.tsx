@@ -13,6 +13,7 @@ import {
   diffJson,
   formatDiffReport,
   formatJson,
+  jsonToTsTypes,
   minifyJson,
   parseJson,
   shortValue,
@@ -45,7 +46,7 @@ function saveDraft(key: string, value: string): void {
   }
 }
 
-type JsonMode = 'format' | 'minify' | 'validate' | 'diff';
+type JsonMode = 'format' | 'minify' | 'validate' | 'diff' | 'type';
 
 type OutputState =
   | { kind: 'idle' }
@@ -101,6 +102,7 @@ const MODES: Array<{ id: JsonMode; label: string }> = [
   { id: 'minify', label: messages.json.modeMinify },
   { id: 'validate', label: messages.json.modeValidate },
   { id: 'diff', label: messages.json.modeDiff },
+  { id: 'type', label: messages.json.modeType },
 ];
 
 const SAMPLE = JSON.stringify(
@@ -143,6 +145,7 @@ export default function JsonToolsPage() {
   const [indent, setIndent] = usePersistedState<number>('devkits.json.indent', 2);
   const [sortKeys, setSortKeys] = useState(false);
   const [unwrap, setUnwrap] = useState(false);
+  const [lenient, setLenient] = useState(false);
   const [input, setInput] = useState(() => loadDraft('devkits.json.input'));
   const [before, setBefore] = useState(() => loadDraft('devkits.json.before'));
   const [after, setAfter] = useState(() => loadDraft('devkits.json.after'));
@@ -156,8 +159,8 @@ export default function JsonToolsPage() {
       setOutput({ kind: 'idle' });
       return;
     }
-    const parsedBefore = parseJson(before);
-    const parsedAfter = parseJson(after);
+    const parsedBefore = parseJson(before, { lenient });
+    const parsedAfter = parseJson(after, { lenient });
     if (!parsedBefore.ok) {
       setOutput({ kind: 'error', error: parsedBefore.error, side: 'before' });
       return;
@@ -166,10 +169,10 @@ export default function JsonToolsPage() {
       setOutput({ kind: 'error', error: parsedAfter.error, side: 'after' });
       return;
     }
-    const beforeValue = unwrap ? unwrapJsonString(parsedBefore.value) : parsedBefore.value;
-    const afterValue = unwrap ? unwrapJsonString(parsedAfter.value) : parsedAfter.value;
+    const beforeValue = unwrap ? unwrapJsonString(parsedBefore.value, lenient) : parsedBefore.value;
+    const afterValue = unwrap ? unwrapJsonString(parsedAfter.value, lenient) : parsedAfter.value;
     setOutput({ kind: 'diff', changes: diffJson(beforeValue, afterValue) });
-  }, [before, after, unwrap]);
+  }, [before, after, unwrap, lenient]);
 
   const run = useCallback(() => {
     if (input.trim() === '') {
@@ -178,7 +181,7 @@ export default function JsonToolsPage() {
     }
 
     if (mode === 'validate') {
-      const result = validateJson(input, unwrap);
+      const result = validateJson(input, { unwrapString: unwrap, lenient });
       if (!result.ok) {
         setOutput({ kind: 'error', error: result.error! });
         return;
@@ -191,10 +194,21 @@ export default function JsonToolsPage() {
       return;
     }
 
+    if (mode === 'type') {
+      const parsed = parseJson(input, { lenient });
+      if (!parsed.ok) {
+        setOutput({ kind: 'error', error: parsed.error });
+        return;
+      }
+      const value = unwrap ? unwrapJsonString(parsed.value, lenient) : parsed.value;
+      setOutput({ kind: 'text', text: jsonToTsTypes(value), value, bigNumbers: [] });
+      return;
+    }
+
     const result =
       mode === 'format'
-        ? formatJson(input, indent, sortKeys, unwrap)
-        : minifyJson(input, unwrap);
+        ? formatJson(input, { indent, sortKeys, unwrapString: unwrap, lenient })
+        : minifyJson(input, { unwrapString: unwrap, lenient });
     if (!result.ok) {
       setOutput({ kind: 'error', error: result.error });
       return;
@@ -205,14 +219,14 @@ export default function JsonToolsPage() {
       value: result.value,
       bigNumbers: result.bigNumbers,
     });
-  }, [mode, input, indent, sortKeys, unwrap]);
+  }, [mode, input, indent, sortKeys, unwrap, lenient]);
 
   // 格式化/压缩/校验自动处理；对比模式改为点击“开始对比”手动触发
   useDebouncedEffect(
     () => {
       if (mode !== 'diff') run();
     },
-    [mode, input, indent, sortKeys, unwrap],
+    [mode, input, indent, sortKeys, unwrap, lenient],
     250,
   );
 
@@ -310,7 +324,10 @@ export default function JsonToolsPage() {
   const downloadOutput = useCallback(() => {
     if (!reportText) return;
     const blob = new Blob([reportText], {
-      type: mode === 'diff' || mode === 'validate' ? 'text/plain;charset=utf-8' : 'application/json',
+      type:
+        mode === 'diff' || mode === 'validate' || mode === 'type'
+          ? 'text/plain;charset=utf-8'
+          : 'application/json',
     });
     const url = URL.createObjectURL(blob);
     downloadUrl(url, messages.json.downloadName[mode]);
@@ -506,6 +523,15 @@ export default function JsonToolsPage() {
             />
             {messages.json.unwrapJsonString}
             <HelpTip text={messages.json.settingsHelp.unwrap} />
+          </label>
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={lenient}
+              onChange={(e) => setLenient(e.target.checked)}
+            />
+            {messages.json.lenient}
+            <HelpTip text={messages.json.settingsHelp.lenient} />
           </label>
           <span className={styles.shortcutHint}>{messages.json.keyboardHint}</span>
         </div>

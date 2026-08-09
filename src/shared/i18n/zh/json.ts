@@ -5,6 +5,7 @@ export const jsonMessages = {
   modeMinify: '压缩',
   modeValidate: '校验',
   modeDiff: '对比',
+  modeType: '类型',
   startCompare: '开始对比',
   inputLabel: '输入',
   outputLabel: '输出',
@@ -24,11 +25,13 @@ export const jsonMessages = {
   indent: '缩进',
   sortKeys: '排序键',
   unwrapJsonString: '自动解包字符串中的 JSON',
+  lenient: '宽松模式（JSONC）',
   keyboardHint: '快捷键：Ctrl + Enter 处理',
   settingsHelp: {
     sortKeys: '格式化时按字典序排列对象键，输出更稳定、便于阅读与对比。',
     unwrap:
       '当输入是带引号的 JSON 字符串（如 "{\\"a\\":1}"）时，自动解析内层 JSON 再进行格式化 / 校验 / 对比。',
+    lenient: '允许注释、尾逗号、单引号与无引号键（JSONC/JSON5），输出仍为标准 JSON。',
   },
   valid: 'JSON 合法',
   invalid: 'JSON 不合法',
@@ -53,5 +56,6 @@ export const jsonMessages = {
     minify: 'minified.json',
     validate: 'json-report.txt',
     diff: 'json-diff.txt',
+    type: 'types.ts',
   },
 } as const;
