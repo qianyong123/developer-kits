@@ -1,6 +1,6 @@
 /** PNG 有损量化：4D（预乘 alpha）中位切分 + k-means 精修 + 自适应抖动 + 索引色 PNG 编码。 */
 
-import { deflateZlib } from './deflate';
+import { deflateZlib } from '@/features/image-compressor/lib/deflate';
 
 export interface QuantizeOptions {
   /** 调色板颜色数（不含透明项），2..256 */

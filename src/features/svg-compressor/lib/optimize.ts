@@ -1,6 +1,6 @@
-import { gzipSvgText } from './svgFile';
-import type { SvgOutputFormat, SvgPreset } from './types';
-import { SvgWorkerPool } from './workerPool';
+import { gzipSvgText } from '@/features/svg-compressor/lib/svgFile';
+import type { SvgOutputFormat, SvgPreset } from '@/features/svg-compressor/lib/types';
+import { SvgWorkerPool } from '@/features/svg-compressor/lib/workerPool';
 
 const POOL_SIZE = 2;
 let pool: SvgWorkerPool | null = null;

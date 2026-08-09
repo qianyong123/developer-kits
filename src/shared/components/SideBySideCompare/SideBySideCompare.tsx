@@ -1,5 +1,5 @@
 import { useRef, useState, type SyntheticEvent } from 'react';
-import styles from './SideBySideCompare.module.css';
+import styles from '@/shared/components/SideBySideCompare/SideBySideCompare.module.css';
 
 const FRAME_PADDING = 14;
 const MAX_HEIGHT = 460;

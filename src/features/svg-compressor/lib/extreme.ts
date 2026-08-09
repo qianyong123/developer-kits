@@ -1,5 +1,5 @@
 import type { Config } from 'svgo/browser';
-import { buildSvgoConfig } from './presets';
+import { buildSvgoConfig } from '@/features/svg-compressor/lib/presets';
 
 export type OptimizeFn = (input: string, config: Config) => { data: string };
 

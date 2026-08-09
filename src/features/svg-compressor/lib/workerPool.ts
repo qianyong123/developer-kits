@@ -1,5 +1,5 @@
-import type { SvgPreset } from './presets';
-import type { OptimizeRequest, OptimizeResponse } from './workerProtocol';
+import type { SvgPreset } from '@/features/svg-compressor/lib/presets';
+import type { OptimizeRequest, OptimizeResponse } from '@/features/svg-compressor/lib/workerProtocol';
 
 interface PendingTask {
   resolve: (text: string) => void;

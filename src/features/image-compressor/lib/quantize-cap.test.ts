@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { quantizeRgba } from './quantize';
+import { quantizeRgba } from '@/features/image-compressor/lib/quantize';
 
 describe('palette cap', () => {
   it('never exceeds 256 palette entries (PNG PLTE limit)', async () => {

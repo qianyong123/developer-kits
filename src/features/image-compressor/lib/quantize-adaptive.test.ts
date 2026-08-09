@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { quantizeRgba } from './quantize';
+import { quantizeRgba } from '@/features/image-compressor/lib/quantize';
 
 describe('adaptive palette size', () => {
   it('shrinks the palette for simple flat images', async () => {

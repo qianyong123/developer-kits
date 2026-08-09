@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inflateSync } from 'node:zlib';
-import { qualityToPngColors, quantizeRgba } from './quantize';
+import { qualityToPngColors, quantizeRgba } from '@/features/image-compressor/lib/quantize';
 
 describe('qualityToPngColors', () => {
   it('maps quality to palette size within 16..256', () => {

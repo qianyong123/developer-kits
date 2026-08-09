@@ -35,7 +35,7 @@ export interface EncodeOptions {
   maxEdge: number;
 }
 
-import { quantizeRgba } from './quantize';
+import { quantizeRgba } from '@/features/image-compressor/lib/quantize';
 
 export async function loadBitmap(file: File): Promise<ImageBitmap> {
   try {

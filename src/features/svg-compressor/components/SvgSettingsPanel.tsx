@@ -1,9 +1,9 @@
-import { messages } from '../../../shared/i18n/zh';
-import { ChevronDownIcon } from '../../../shared/components/Icons';
-import HelpTip from '../../../shared/components/HelpTip/HelpTip';
-import { SVG_PRESETS } from '../lib/presets';
-import type { SvgSettings } from '../lib/types';
-import styles from './SvgSettingsPanel.module.css';
+import { messages } from '@/shared/i18n/zh';
+import { ChevronDownIcon } from '@/shared/components/Icons';
+import HelpTip from '@/shared/components/HelpTip/HelpTip';
+import { SVG_PRESETS } from '@/features/svg-compressor/lib/presets';
+import type { SvgSettings } from '@/features/svg-compressor/lib/types';
+import styles from '@/features/svg-compressor/components/SvgSettingsPanel.module.css';
 
 interface Props {
   settings: SvgSettings;

@@ -1,5 +1,5 @@
 import { gunzipSync, gzipSync } from 'fflate';
-import type { SvgOutputFormat } from './types';
+import type { SvgOutputFormat } from '@/features/svg-compressor/lib/types';
 
 export const MAX_SVG_FILE_SIZE = 20 * 1024 * 1024;
 

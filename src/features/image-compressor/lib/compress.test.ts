@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findBestQuality } from './compress';
+import { findBestQuality } from '@/features/image-compressor/lib/compress';
 
 describe('findBestQuality', () => {
   it('finds the highest quality whose size fits the target', async () => {

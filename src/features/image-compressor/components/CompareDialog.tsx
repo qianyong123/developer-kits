@@ -1,9 +1,9 @@
-import { messages } from '../../../shared/i18n/zh';
-import { formatBytes } from '../../../shared/lib/format';
-import type { PreviewBg } from '../../../shared/lib/hasTransparency';
-import SideBySideCompare from '../../../shared/components/SideBySideCompare/SideBySideCompare';
-import type { ImageItem } from '../lib/types';
-import styles from './CompareDialog.module.css';
+import { messages } from '@/shared/i18n/zh';
+import { formatBytes } from '@/shared/lib/format';
+import type { PreviewBg } from '@/shared/lib/hasTransparency';
+import SideBySideCompare from '@/shared/components/SideBySideCompare/SideBySideCompare';
+import type { ImageItem } from '@/features/image-compressor/lib/types';
+import styles from '@/features/image-compressor/components/CompareDialog.module.css';
 
 export default function CompareDialog({
   item,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inflateSync } from 'node:zlib';
-import { quantizeRgba } from './quantize';
+import { quantizeRgba } from '@/features/image-compressor/lib/quantize';
 
 describe('semi-transparent glow', () => {
   it('preserves partial alpha in the palette (tRNS contains intermediate values)', async () => {

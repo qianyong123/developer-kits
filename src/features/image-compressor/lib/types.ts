@@ -1,4 +1,4 @@
-import type { FormatOption, OutputFormat } from './encoders';
+import type { FormatOption, OutputFormat } from '@/features/image-compressor/lib/encoders';
 
 export interface CompressSettings {
   quality: number;

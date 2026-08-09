@@ -1,4 +1,4 @@
-import type { SvgPreset } from './presets';
+import type { SvgPreset } from '@/features/svg-compressor/lib/presets';
 
 export interface OptimizeRequest {
   id: number;

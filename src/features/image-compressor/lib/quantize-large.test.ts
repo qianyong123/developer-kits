@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { inflateSync } from 'node:zlib';
-import { quantizeRgba } from './quantize';
+import { quantizeRgba } from '@/features/image-compressor/lib/quantize';
 
 describe('quantizeRgba large image', () => {
   it('handles a 512x512 image with chunked progress and valid output', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readImageDimensions } from './imageInfo';
+import { readImageDimensions } from '@/features/image-compressor/lib/imageInfo';
 
 function makeFile(bytes: number[], name: string, type: string): File {
   return new File([new Uint8Array(bytes)], name, { type });

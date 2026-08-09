@@ -1,26 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { messages } from '../../shared/i18n/zh';
-import { DownloadIcon, RefreshIcon, TrashIcon } from '../../shared/components/Icons';
-import FileDropZone from '../../shared/components/FileDropZone/FileDropZone';
-import { useDebouncedEffect } from '../../shared/hooks/useDebounced';
-import { downloadUrl } from '../../shared/lib/download';
-import { formatBytes, ratioPercent } from '../../shared/lib/format';
-import { imageHasTransparency } from '../../shared/lib/hasTransparency';
-import CompareDialog from './components/CompareDialog';
-import ImageCard from './components/ImageCard';
-import SettingsPanel from './components/SettingsPanel';
-import { compressImage } from './lib/compress';
-import { outputFileName } from './lib/filenames';
-import { runPool } from './lib/queue';
-import type { CompressSettings, ImageItem } from './lib/types';
+import { messages } from '@/shared/i18n/zh';
+import { DownloadIcon, RefreshIcon, TrashIcon } from '@/shared/components/Icons';
+import FileDropZone from '@/shared/components/FileDropZone/FileDropZone';
+import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
+import { downloadUrl } from '@/shared/lib/download';
+import { formatBytes, ratioPercent } from '@/shared/lib/format';
+import { imageHasTransparency } from '@/shared/lib/hasTransparency';
+import CompareDialog from '@/features/image-compressor/components/CompareDialog';
+import ImageCard from '@/features/image-compressor/components/ImageCard';
+import SettingsPanel from '@/features/image-compressor/components/SettingsPanel';
+import { compressImage } from '@/features/image-compressor/lib/compress';
+import { outputFileName } from '@/features/image-compressor/lib/filenames';
+import { runPool } from '@/features/image-compressor/lib/queue';
+import type { CompressSettings, ImageItem } from '@/features/image-compressor/lib/types';
 import {
   MAX_FILE_SIZE,
   MAX_IMAGE_PIXELS,
   MAX_IMAGE_SIDE,
   readImageDimensions,
-} from './lib/imageInfo';
-import { buildZipBlob } from './lib/zip';
-import styles from './ImageCompressorPage.module.css';
+} from '@/features/image-compressor/lib/imageInfo';
+import { buildZipBlob } from '@/features/image-compressor/lib/zip';
+import styles from '@/features/image-compressor/ImageCompressorPage.module.css';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALPHA_TYPES = new Set(['image/png', 'image/webp', 'image/gif']);

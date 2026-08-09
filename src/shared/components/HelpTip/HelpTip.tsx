@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import styles from './HelpTip.module.css';
+import styles from '@/shared/components/HelpTip/HelpTip.module.css';
 
 function isTouchDevice(): boolean {
   if (typeof window === 'undefined') return false;

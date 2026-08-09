@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import type { ComponentType, ReactNode, SVGProps } from 'react';
 import { NavLink } from 'react-router-dom';
-import { messages } from '../shared/i18n/zh';
+import { messages } from '@/shared/i18n/zh';
 import {
   BracesIcon,
   BrandIcon,
   CodeIcon,
   ImageIcon,
   MenuIcon,
-} from '../shared/components/Icons';
-import styles from './AppShell.module.css';
+} from '@/shared/components/Icons';
+import styles from '@/app/AppShell.module.css';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 

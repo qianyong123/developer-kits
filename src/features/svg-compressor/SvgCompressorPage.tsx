@@ -1,25 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { messages } from '../../shared/i18n/zh';
-import { DownloadIcon, RefreshIcon, TrashIcon } from '../../shared/components/Icons';
-import FileDropZone from '../../shared/components/FileDropZone/FileDropZone';
-import { useDebouncedEffect } from '../../shared/hooks/useDebounced';
-import { downloadUrl } from '../../shared/lib/download';
-import { formatBytes, ratioPercent } from '../../shared/lib/format';
-import { imageHasTransparency } from '../../shared/lib/hasTransparency';
-import { buildZipBlob } from '../image-compressor/lib/zip';
-import SvgCard from './components/SvgCard';
-import SvgCompareDialog from './components/SvgCompareDialog';
-import SvgSettingsPanel from './components/SvgSettingsPanel';
-import { disposeWorkerPool, optimizeSvg } from './lib/optimize';
+import { messages } from '@/shared/i18n/zh';
+import { DownloadIcon, RefreshIcon, TrashIcon } from '@/shared/components/Icons';
+import FileDropZone from '@/shared/components/FileDropZone/FileDropZone';
+import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
+import { downloadUrl } from '@/shared/lib/download';
+import { formatBytes, ratioPercent } from '@/shared/lib/format';
+import { imageHasTransparency } from '@/shared/lib/hasTransparency';
+import { buildZipBlob } from '@/features/image-compressor/lib/zip';
+import SvgCard from '@/features/svg-compressor/components/SvgCard';
+import SvgCompareDialog from '@/features/svg-compressor/components/SvgCompareDialog';
+import SvgSettingsPanel from '@/features/svg-compressor/components/SvgSettingsPanel';
+import { disposeWorkerPool, optimizeSvg } from '@/features/svg-compressor/lib/optimize';
 import {
   isSvgFile,
   isSvgzName,
   MAX_SVG_FILE_SIZE,
   readSvgText,
   svgOutputName,
-} from './lib/svgFile';
-import type { SvgItem, SvgOutputFormat, SvgResult, SvgSettings } from './lib/types';
-import styles from './SvgCompressorPage.module.css';
+} from '@/features/svg-compressor/lib/svgFile';
+import type { SvgItem, SvgOutputFormat, SvgResult, SvgSettings } from '@/features/svg-compressor/lib/types';
+import styles from '@/features/svg-compressor/SvgCompressorPage.module.css';
 
 const SVG_PICK_TYPES = [
   {

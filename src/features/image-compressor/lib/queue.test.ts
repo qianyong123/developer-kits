@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runPool } from './queue';
+import { runPool } from '@/features/image-compressor/lib/queue';
 
 describe('runPool', () => {
   it('processes every item while respecting the concurrency limit', async () => {

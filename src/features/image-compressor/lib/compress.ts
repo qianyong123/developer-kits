@@ -1,7 +1,7 @@
-import { attachMetadataIfNeeded } from './metadata';
-import { encodeBitmap, encodeQuantizedPng, loadBitmap, resolveOutputFormat, type OutputFormat } from './encoders';
-import { PNG_DITHER, qualityToPngColors } from './quantize';
-import type { CompressResult, CompressSettings } from './types';
+import { attachMetadataIfNeeded } from '@/features/image-compressor/lib/metadata';
+import { encodeBitmap, encodeQuantizedPng, loadBitmap, resolveOutputFormat, type OutputFormat } from '@/features/image-compressor/lib/encoders';
+import { PNG_DITHER, qualityToPngColors } from '@/features/image-compressor/lib/quantize';
+import type { CompressResult, CompressSettings } from '@/features/image-compressor/lib/types';
 
 /**
  * 在质量区间内二分，找到“体积不超过目标的最大质量”。

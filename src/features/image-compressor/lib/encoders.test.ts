@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveOutputFormat } from './encoders';
+import { resolveOutputFormat } from '@/features/image-compressor/lib/encoders';
 
 const makeFile = (type: string) => new File(['x'], `test.${type.split('/')[1]}`, { type });
 

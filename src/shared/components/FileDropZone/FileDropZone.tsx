@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { UploadIcon } from '../Icons';
-import styles from './FileDropZone.module.css';
+import { UploadIcon } from '@/shared/components/Icons';
+import styles from '@/shared/components/FileDropZone/FileDropZone.module.css';
 
 interface PickType {
   description: string;

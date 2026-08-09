@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { messages } from '../../../shared/i18n/zh';
-import SideBySideCompare from '../../../shared/components/SideBySideCompare/SideBySideCompare';
-import { formatBytes } from '../../../shared/lib/format';
-import type { PreviewBg } from '../../../shared/lib/hasTransparency';
-import type { SvgItem } from '../lib/types';
-import styles from './SvgCompareDialog.module.css';
+import { messages } from '@/shared/i18n/zh';
+import SideBySideCompare from '@/shared/components/SideBySideCompare/SideBySideCompare';
+import { formatBytes } from '@/shared/lib/format';
+import type { PreviewBg } from '@/shared/lib/hasTransparency';
+import type { SvgItem } from '@/features/svg-compressor/lib/types';
+import styles from '@/features/svg-compressor/components/SvgCompareDialog.module.css';
 
 type Tab = 'visual' | 'code';
 

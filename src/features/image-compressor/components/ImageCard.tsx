@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
-import { messages } from '../../../shared/i18n/zh';
-import { CloseIcon, DownloadIcon } from '../../../shared/components/Icons';
-import { formatBytes, ratioPercent } from '../../../shared/lib/format';
-import type { PreviewBg } from '../../../shared/lib/hasTransparency';
-import type { ImageItem } from '../lib/types';
-import styles from './ImageCard.module.css';
+import { messages } from '@/shared/i18n/zh';
+import { CloseIcon, DownloadIcon } from '@/shared/components/Icons';
+import { formatBytes, ratioPercent } from '@/shared/lib/format';
+import type { PreviewBg } from '@/shared/lib/hasTransparency';
+import type { ImageItem } from '@/features/image-compressor/lib/types';
+import styles from '@/features/image-compressor/components/ImageCard.module.css';
 
 interface Props {
   item: ImageItem;

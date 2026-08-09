@@ -1,4 +1,4 @@
-import { EXT, type OutputFormat } from './encoders';
+import { EXT, type OutputFormat } from '@/features/image-compressor/lib/encoders';
 
 /** 输出文件名：格式不变时保留原名称，格式转换时仅更换扩展名。 */
 export function outputFileName(originalName: string, format: OutputFormat): string {

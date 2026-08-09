@@ -1,10 +1,10 @@
-import { messages } from '../../../shared/i18n/zh';
-import { ChevronDownIcon } from '../../../shared/components/Icons';
-import HelpTip from '../../../shared/components/HelpTip/HelpTip';
-import { formatBytes, ratioPercent } from '../../../shared/lib/format';
-import type { FormatOption } from '../lib/encoders';
-import type { CompressSettings } from '../lib/types';
-import styles from './SettingsPanel.module.css';
+import { messages } from '@/shared/i18n/zh';
+import { ChevronDownIcon } from '@/shared/components/Icons';
+import HelpTip from '@/shared/components/HelpTip/HelpTip';
+import { formatBytes, ratioPercent } from '@/shared/lib/format';
+import type { FormatOption } from '@/features/image-compressor/lib/encoders';
+import type { CompressSettings } from '@/features/image-compressor/lib/types';
+import styles from '@/features/image-compressor/components/SettingsPanel.module.css';
 
 /** 质量预设档位：极致 / 高保真（默认）/ 均衡 / 小体积 */
 const QUALITY_PRESETS: Array<{ value: number; label: string }> = [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ratioPercent } from './format';
+import { ratioPercent } from '@/shared/lib/format';
 
 describe('ratioPercent', () => {
   it('shows a minus sign when the result is smaller', () => {
