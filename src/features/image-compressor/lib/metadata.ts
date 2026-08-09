@@ -9,13 +9,16 @@ export async function attachMetadataIfNeeded(
 
   try {
     const { default: piexif } = await import('piexifjs');
+    // 原图本身不含 EXIF 时无需处理（也不提示）
+    if (!(await hasExifMarker(file))) return { blob };
     const originalDataUrl = await blobToDataURL(file);
 
     let exif: Record<string, unknown> | null = null;
     try {
       exif = piexif.load(originalDataUrl);
     } catch {
-      exif = null;
+      // 原图含 EXIF 但解析失败（部分手机/微信照片的非标准结构）
+      return { blob, note: 'metadata-failed' };
     }
     if (!exif || !hasExif(exif)) return { blob };
 
@@ -23,8 +26,30 @@ export async function attachMetadataIfNeeded(
     const withExif = piexif.insert(piexif.dump(exif), compressedDataUrl);
     return { blob: dataURLToBlob(withExif) };
   } catch {
-    return { blob };
+    return { blob, note: 'metadata-failed' };
   }
+}
+
+/** 只读文件头（前 1MB）判断是否含 EXIF APP1 标记（"Exif\0\0"），避免误报解析失败。 */
+async function hasExifMarker(file: File): Promise<boolean> {
+  try {
+    const head = new Uint8Array(await file.slice(0, Math.min(file.size, 1_048_576)).arrayBuffer());
+    for (let i = 0; i + 5 < head.length; i += 1) {
+      if (
+        head[i] === 0x45 &&
+        head[i + 1] === 0x78 &&
+        head[i + 2] === 0x69 &&
+        head[i + 3] === 0x66 &&
+        head[i + 4] === 0x00 &&
+        head[i + 5] === 0x00
+      ) {
+        return true;
+      }
+    }
+  } catch {
+    // 读取失败时按“无法判断”处理：仍走 piexif 解析
+  }
+  return true;
 }
 
 function hasExif(exif: Record<string, unknown>): boolean {

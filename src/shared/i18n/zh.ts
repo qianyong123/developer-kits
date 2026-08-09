@@ -70,6 +70,8 @@ export const messages = {
     remove: '移除',
     noteCannotReach: '无法达标：已按最低质量输出',
     noteMetadataWebp: '提示：当前格式不支持保留元数据',
+    noteKeptOriginal: '原图已是最优，保留原图',
+    noteMetadataFailed: '提示：EXIF 解析失败，未保留元数据',
 
     errorNoWebp: '当前浏览器不支持 WebP 编码',
     errorDecode: '图片解码失败',

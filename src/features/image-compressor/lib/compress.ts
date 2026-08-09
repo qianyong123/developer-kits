@@ -89,6 +89,7 @@ async function compressOnce(
 
   // 超出目标体积时，自动下调质量到“不超过目标”的最高质量（保真优先：能达标就尽量高）
   const targetBytes = Math.max(1, Math.round((file.size * settings.compressRatio) / 100));
+  let note: CompressResult['note'];
   if (encoded.size > targetBytes) {
     let searchIteration = 0;
     const encodeAt = async (q: number): Promise<Blob> => {
@@ -103,7 +104,7 @@ async function compressOnce(
           })).blob
         : encodeBitmap(bitmap, { format, quality: q, maxEdge: settings.maxEdge });
     };
-    const { quality: adjusted } = await findBestQuality(
+    const { quality: adjusted, reachable } = await findBestQuality(
       async (q) => (await encodeAt(q)).size,
       targetBytes,
       1,
@@ -111,23 +112,25 @@ async function compressOnce(
     );
     encoded = await encodeAt(adjusted);
     quality = adjusted;
+    // 最低质量仍超目标：明确提示“无法达标”
+    if (!reachable) note = 'cannot-reach';
   }
 
   // 尽力压缩后仍不小于原图时，保留原文件（不输出更差的结果）
   if (encoded.size >= file.size) {
     format = resolveOutputFormat(file, 'original');
     onProgress?.(0.98);
-    return makeResult(file, format, quality);
+    return makeResult(file, format, quality, 'kept-original');
   }
 
   onProgress?.(0.95);
-  const { blob, note } = await attachMetadataIfNeeded(
+  const { blob, note: metaNote } = await attachMetadataIfNeeded(
     encoded,
     file,
     format,
     settings.keepMetadata,
   );
-  return makeResult(blob, format, quality, note);
+  return makeResult(blob, format, quality, note ?? metaNote);
 }
 
 function makeResult(

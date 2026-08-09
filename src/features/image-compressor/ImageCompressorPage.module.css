@@ -226,6 +226,19 @@
     margin-top: 16px;
   }
 
+  .toolbar {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .toolbar button {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 8px 9px;
+    font-size: 13px;
+  }
+
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 10px;

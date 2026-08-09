@@ -47,6 +47,10 @@ function noteText(note?: string): string | null {
       return messages.image.noteCannotReach;
     case 'metadata-unsupported':
       return messages.image.noteMetadataWebp;
+    case 'kept-original':
+      return messages.image.noteKeptOriginal;
+    case 'metadata-failed':
+      return messages.image.noteMetadataFailed;
     default:
       return null;
   }
