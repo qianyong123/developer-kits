@@ -1,0 +1,37 @@
+.box {
+  max-width: 520px;
+  margin: 48px auto;
+  padding: 28px;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: var(--text-strong);
+}
+
+.message {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.retry {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 8px 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--accent-strong);
+}

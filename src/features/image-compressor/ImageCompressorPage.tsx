@@ -3,6 +3,7 @@ import { messages } from '@/shared/i18n/zh';
 import { DownloadIcon, RefreshIcon, TrashIcon } from '@/shared/components/Icons';
 import FileDropZone from '@/shared/components/FileDropZone/FileDropZone';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
+import { usePersistedState } from '@/shared/hooks/usePersistedState';
 import { downloadUrl } from '@/shared/lib/download';
 import { formatBytes, ratioPercent } from '@/shared/lib/format';
 import { imageHasTransparency } from '@/shared/lib/hasTransparency';
@@ -83,7 +84,10 @@ function describeError(err: unknown): string {
 
 export default function ImageCompressorPage() {
   const [items, setItems] = useState<ImageItem[]>([]);
-  const [settings, setSettings] = useState<CompressSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = usePersistedState<CompressSettings>(
+    'devkits.image.settings',
+    DEFAULT_SETTINGS,
+  );
   const [busy, setBusy] = useState(false);
   const [zipping, setZipping] = useState(false);
   const [needCompress, setNeedCompress] = useState(false);
