@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { messages } from '@/shared/i18n/zh';
 import { BrandIcon, MenuIcon } from '@/shared/components/Icons';
+import { useTheme } from '@/shared/hooks/useTheme';
 import { tools } from '@/app/tools';
 import styles from '@/app/AppShell.module.css';
 
@@ -15,6 +16,7 @@ const NAV_ITEMS = tools.map((tool) => ({
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className={styles.shell}>
@@ -47,6 +49,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
+
+        <button type="button" className={styles.themeToggle} onClick={toggleTheme}>
+          {theme === 'light' ? messages.app.themeDark : messages.app.themeLight}
+        </button>
       </aside>
 
       {open && <div className={styles.scrim} onClick={() => setOpen(false)} />}
@@ -62,6 +68,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <MenuIcon size={20} />
           </button>
           <span className={styles.topbarBrand}>{messages.app.brand}</span>
+          <button type="button" className={styles.topbarTheme} onClick={toggleTheme}>
+            {theme === 'light' ? messages.app.themeDark : messages.app.themeLight}
+          </button>
         </header>
         <main className={styles.main}>{children}</main>
       </div>

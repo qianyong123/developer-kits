@@ -10,6 +10,7 @@ import {
   parseJsonStrict,
   shortValue,
   sortObjectKeys,
+  unwrapJsonString,
   validateJson,
 } from '@/features/json-tools/lib/json';
 
@@ -126,6 +127,28 @@ describe('diffJson', () => {
 });
 
 describe('工具函数', () => {
+  it('unwrapJsonString：字符串内套 JSON 自动解包', () => {
+    expect(unwrapJsonString('{"a":1}')).toEqual({ a: 1 });
+    expect(unwrapJsonString('hello')).toBe('hello');
+    expect(unwrapJsonString(123)).toBe(123);
+  });
+
+  it('formatJson 开启解包后输出内层对象', () => {
+    const result = formatJson('"{\\"a\\":1}"', 2, false, true);
+    expect(result.ok && result.text).toBe('{\n  "a": 1\n}');
+  });
+
+  it('validateJson 解包后校验内层重复键', () => {
+    const result = validateJson('"{\\"a\\":1,\\"a\\":2}"', true);
+    expect(result.ok).toBe(true);
+    expect(result.duplicates).toHaveLength(1);
+  });
+
+  it('validateJson 解包后内层非法则报错', () => {
+    const result = validateJson('"{bad}"', true);
+    expect(result.ok).toBe(false);
+  });
+
   it('超出 2^53 的大整数被标记', () => {
     const result = parseJsonStrict('{"a": 9007199254740993}');
     expect(result.ok).toBe(true);

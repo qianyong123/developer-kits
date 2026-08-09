@@ -105,7 +105,7 @@ try {
   );
   ok('格式化：缩进 4 作用于输出文本', indentClipboard.includes('\n    "b"'), indentClipboard.slice(0, 40));
 
-  await page.locator('[class*="checkbox"] input').check();
+  await page.locator('[class*="checkbox"] input').nth(0).check(); // 排序键（第 0 个复选框）
   await wait();
   text = await viewerText();
   ok(
@@ -113,7 +113,7 @@ try {
     text !== null && text.indexOf('a:[') < text.indexOf('b:1'),
     (text ?? '').slice(0, 40),
   );
-  await page.locator('[class*="checkbox"] input').uncheck();
+  await page.locator('[class*="checkbox"] input').nth(0).uncheck();
 
   await textarea().fill('{"zh":"\\u4e2d\\u6587","emoji":"🎉","nl":"a\\nb"}');
   await wait();

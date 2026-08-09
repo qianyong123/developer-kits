@@ -65,6 +65,25 @@
   gap: 4px;
 }
 
+.themeToggle {
+  margin-top: auto;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.themeToggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .link {
   display: flex;
   align-items: center;
@@ -174,6 +193,17 @@
     font-size: 16px;
     font-weight: 700;
     color: var(--text-strong);
+  }
+
+  .topbarTheme {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
   }
 
   .main {

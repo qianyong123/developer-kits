@@ -16,6 +16,7 @@ import {
   minifyJson,
   parseJson,
   shortValue,
+  unwrapJsonString,
   validateJson,
   type BigNumberInfo,
   type DuplicateKeyInfo,
@@ -141,6 +142,7 @@ export default function JsonToolsPage() {
   const [mode, setMode] = useState<JsonMode>('format');
   const [indent, setIndent] = usePersistedState<number>('devkits.json.indent', 2);
   const [sortKeys, setSortKeys] = useState(false);
+  const [unwrap, setUnwrap] = useState(false);
   const [input, setInput] = useState(() => loadDraft('devkits.json.input'));
   const [before, setBefore] = useState(() => loadDraft('devkits.json.before'));
   const [after, setAfter] = useState(() => loadDraft('devkits.json.after'));
@@ -164,8 +166,10 @@ export default function JsonToolsPage() {
       setOutput({ kind: 'error', error: parsedAfter.error, side: 'after' });
       return;
     }
-    setOutput({ kind: 'diff', changes: diffJson(parsedBefore.value, parsedAfter.value) });
-  }, [before, after]);
+    const beforeValue = unwrap ? unwrapJsonString(parsedBefore.value) : parsedBefore.value;
+    const afterValue = unwrap ? unwrapJsonString(parsedAfter.value) : parsedAfter.value;
+    setOutput({ kind: 'diff', changes: diffJson(beforeValue, afterValue) });
+  }, [before, after, unwrap]);
 
   const run = useCallback(() => {
     if (input.trim() === '') {
@@ -174,7 +178,7 @@ export default function JsonToolsPage() {
     }
 
     if (mode === 'validate') {
-      const result = validateJson(input);
+      const result = validateJson(input, unwrap);
       if (!result.ok) {
         setOutput({ kind: 'error', error: result.error! });
         return;
@@ -188,7 +192,9 @@ export default function JsonToolsPage() {
     }
 
     const result =
-      mode === 'format' ? formatJson(input, indent, sortKeys) : minifyJson(input);
+      mode === 'format'
+        ? formatJson(input, indent, sortKeys, unwrap)
+        : minifyJson(input, unwrap);
     if (!result.ok) {
       setOutput({ kind: 'error', error: result.error });
       return;
@@ -199,16 +205,29 @@ export default function JsonToolsPage() {
       value: result.value,
       bigNumbers: result.bigNumbers,
     });
-  }, [mode, input, indent, sortKeys]);
+  }, [mode, input, indent, sortKeys, unwrap]);
 
   // 格式化/压缩/校验自动处理；对比模式改为点击“开始对比”手动触发
   useDebouncedEffect(
     () => {
       if (mode !== 'diff') run();
     },
-    [mode, input, indent, sortKeys],
+    [mode, input, indent, sortKeys, unwrap],
     250,
   );
+
+  // 快捷键：Ctrl/Cmd + Enter 立即处理
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (mode === 'diff') runDiff();
+        else run();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mode, run, runDiff]);
 
   // 进入对比模式时清空旧输出，等待手动触发
   useEffect(() => {
@@ -454,8 +473,9 @@ export default function JsonToolsPage() {
           ))}
         </div>
 
-        {mode === 'format' && (
-          <div className={styles.options}>
+        <div className={styles.options}>
+          {mode === 'format' && (
+            <>
             <span className={styles.optionLabel}>{messages.json.indent}</span>
             {[2, 4].map((n) => (
               <button
@@ -476,8 +496,19 @@ export default function JsonToolsPage() {
               {messages.json.sortKeys}
               <HelpTip text={messages.json.settingsHelp.sortKeys} />
             </label>
-          </div>
-        )}
+            </>
+          )}
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={unwrap}
+              onChange={(e) => setUnwrap(e.target.checked)}
+            />
+            {messages.json.unwrapJsonString}
+            <HelpTip text={messages.json.settingsHelp.unwrap} />
+          </label>
+          <span className={styles.shortcutHint}>{messages.json.keyboardHint}</span>
+        </div>
       </header>
 
       <div className={styles.columns}>

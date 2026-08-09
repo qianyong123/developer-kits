@@ -330,11 +330,27 @@ export function parseJson(text: string): JsonParseResult {
 }
 
 /** 校验 JSON：合法性 + 重复键检测。 */
-export function validateJson(text: string): ValidateResult {
+export function validateJson(text: string, unwrapString = false): ValidateResult {
   const size = text.length;
   const lines = countLines(text);
   const parsed = parseJsonStrict(text);
   if (!parsed.ok) return { ok: false, error: parsed.error, size, lines };
+  if (unwrapString && typeof parsed.value === 'string') {
+    const inner = parsed.value.trim();
+    if (inner.startsWith('{') || inner.startsWith('[')) {
+      const innerParsed = parseJsonStrict(inner);
+      if (!innerParsed.ok) {
+        return { ok: false, error: innerParsed.error, size, lines };
+      }
+      return {
+        ok: true,
+        size,
+        lines,
+        duplicates: innerParsed.duplicates,
+        bigNumbers: innerParsed.bigNumbers,
+      };
+    }
+  }
   return { ok: true, size, lines, duplicates: parsed.duplicates, bigNumbers: parsed.bigNumbers };
 }
 
@@ -342,10 +358,12 @@ export function formatJson(
   text: string,
   indent = 2,
   sortKeys = false,
+  unwrapString = false,
 ): JsonTransformResult {
   const parsed = parseJsonStrict(text);
   if (!parsed.ok) return parsed;
-  const value = sortKeys ? sortObjectKeys(parsed.value) : parsed.value;
+  const base = unwrapString ? unwrapJsonString(parsed.value) : parsed.value;
+  const value = sortKeys ? sortObjectKeys(base) : base;
   return {
     ok: true,
     text: JSON.stringify(value, null, indent),
@@ -354,15 +372,28 @@ export function formatJson(
   };
 }
 
-export function minifyJson(text: string): JsonTransformResult {
+export function minifyJson(text: string, unwrapString = false): JsonTransformResult {
   const parsed = parseJsonStrict(text);
   if (!parsed.ok) return parsed;
+  const value = unwrapString ? unwrapJsonString(parsed.value) : parsed.value;
   return {
     ok: true,
-    text: JSON.stringify(parsed.value),
-    value: parsed.value,
+    text: JSON.stringify(value),
+    value,
     bigNumbers: parsed.bigNumbers,
   };
+}
+
+/**
+ * 若解析值是“字符串里套着合法 JSON”（如 "{\"a\":1}"），返回解包后的内层值；
+ * 否则原样返回。用于“自动解包”选项：从日志/配置复制的带引号 JSON 可直接处理。
+ */
+export function unwrapJsonString(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return value;
+  const inner = parseJsonStrict(trimmed);
+  return inner.ok ? inner.value : value;
 }
 
 /** 递归按字典序排序对象键（数组元素位置不变）。 */
