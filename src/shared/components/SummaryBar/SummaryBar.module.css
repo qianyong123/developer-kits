@@ -1,0 +1,30 @@
+.summary {
+  display: flex;
+  align-items: center;
+  background: var(--bg-success);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--success-strong);
+  margin-top: 16px;
+  margin-bottom: 14px;
+}
+
+.summary b {
+  font-weight: 600;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.good {
+  color: var(--success-strong) !important;
+}
+
+.bad {
+  color: var(--danger) !important;
+}
+
+.extra {
+  color: var(--warning);
+  font-weight: 600;
+}

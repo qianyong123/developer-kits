@@ -2,8 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { messages } from '@/shared/i18n/zh';
 import { DownloadIcon, RefreshIcon, TrashIcon } from '@/shared/components/Icons';
 import FileDropZone from '@/shared/components/FileDropZone/FileDropZone';
+import Notice from '@/shared/components/Notice/Notice';
+import ProgressBar from '@/shared/components/ProgressBar/ProgressBar';
+import SummaryBar from '@/shared/components/SummaryBar/SummaryBar';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
 import { usePersistedState } from '@/shared/hooks/usePersistedState';
+import { useWorkbench } from '@/shared/hooks/useWorkbench';
 import { downloadUrl } from '@/shared/lib/download';
 import { formatBytes, ratioPercent } from '@/shared/lib/format';
 import { imageHasTransparency } from '@/shared/lib/hasTransparency';
@@ -19,7 +23,12 @@ import {
   readSvgText,
   svgOutputName,
 } from '@/features/svg-compressor/lib/svgFile';
-import type { SvgItem, SvgOutputFormat, SvgResult, SvgSettings } from '@/features/svg-compressor/lib/types';
+import type {
+  SvgItem,
+  SvgOutputFormat,
+  SvgResult,
+  SvgSettings,
+} from '@/features/svg-compressor/lib/types';
 import styles from '@/features/svg-compressor/SvgCompressorPage.module.css';
 
 const SVG_PICK_TYPES = [
@@ -46,96 +55,21 @@ function describeError(err: unknown): string {
 }
 
 export default function SvgCompressorPage() {
-  const [items, setItems] = useState<SvgItem[]>([]);
   const [settings, setSettings] = usePersistedState<SvgSettings>(
     'devkits.svg.settings',
     DEFAULT_SETTINGS,
   );
-  const [busy, setBusy] = useState(false);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
   const [zipping, setZipping] = useState(false);
-  const [needCompress, setNeedCompress] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
 
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-  const genRef = useRef(0);
-  // 待压缩目标：null = 全部（设置变更/手动压缩），id 列表 = 仅新增的文件
-  const compressTargetRef = useRef<string[] | null>(null);
-
   useEffect(() => () => disposeWorkerPool(), []);
 
-  const updateItem = useCallback((id: string, patch: Partial<SvgItem>) => {
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
-  }, []);
-
-  const startCompress = useCallback(async (targetIds?: string[]) => {
-    const current = itemsRef.current;
-    const idSet = targetIds ? new Set(targetIds) : null;
-    const targets = current.filter((it) => {
-      if (!idSet) return true;
-      return idSet.has(it.id) || it.status === 'pending' || it.status === 'processing';
-    });
-    if (targets.length === 0) return;
-    const targetSet = new Set(targets.map((it) => it.id));
-
-    const gen = ++genRef.current;
-    const snapshot = current.map((it) => {
-      if (!targetSet.has(it.id)) return it;
-      if (it.result) URL.revokeObjectURL(it.result.previewUrl);
-      return { ...it, status: 'pending' as const, result: undefined, error: undefined };
-    });
-    setItems(snapshot);
-    setBusy(true);
-    const runSettings = settingsRef.current;
-
-    await Promise.all(
-      targets.map(async (item) => {
-        if (genRef.current !== gen) return;
-        updateItem(item.id, { status: 'processing' });
-        try {
-          const optimized = await optimizeSvg(
-            item.originalCode,
-            runSettings.preset,
-            runSettings.format,
-          );
-          if (genRef.current !== gen) return;
-          const result = buildResult(item, optimized);
-          updateItem(item.id, { status: 'done', result });
-        } catch (err) {
-          if (genRef.current !== gen) return;
-          updateItem(item.id, { status: 'error', error: describeError(err) });
-        }
-      }),
-    );
-
-    if (genRef.current === gen) setBusy(false);
-  }, [updateItem]);
-
-  useEffect(() => {
-    if (!needCompress) return;
-    setNeedCompress(false);
-    const target = compressTargetRef.current;
-    compressTargetRef.current = null;
-    void startCompress(target ?? undefined);
-  }, [needCompress, startCompress]);
-
-  useDebouncedEffect(
-    () => {
-      if (itemsRef.current.length > 0) {
-        compressTargetRef.current = null; // 设置变更：全部重新压缩
-        setNeedCompress(true);
-      }
-    },
-    [JSON.stringify(settings)],
-    300,
-  );
-
-  const addFiles = useCallback(async (files: File[]) => {
+  const buildItems = useCallback(async (files: File[]) => {
     const notices: string[] = [];
     const svgFiles = files.filter(isSvgFile);
     const ignored = files.length - svgFiles.length;
@@ -143,7 +77,6 @@ export default function SvgCompressorPage() {
 
     const sizeOk = svgFiles.filter((f) => f.size <= MAX_SVG_FILE_SIZE);
     if (sizeOk.length !== svgFiles.length) notices.push(messages.svg.fileTooLarge);
-    setNotice(notices.length > 0 ? notices.join('；') : null);
 
     const created: SvgItem[] = [];
     for (const file of sizeOk) {
@@ -167,39 +100,46 @@ export default function SvgCompressorPage() {
         notices.push(messages.svg.readFailed(file.name));
       }
     }
-    if (notices.length > 0) setNotice(notices.join('；'));
-    if (created.length === 0) return;
-
-    setItems((prev) => [...created, ...prev]); // 最新上传的排在最前
-    compressTargetRef.current = created.map((it) => it.id); // 只压缩新上传的文件
-    setNeedCompress(true);
+    return {
+      created,
+      compressIds: created.map((it) => it.id), // 只压缩新上传的文件
+      notice: notices.length > 0 ? notices.join('；') : undefined,
+    };
   }, []);
 
-  const removeItem = useCallback((id: string) => {
-    setItems((prev) => {
-      const target = prev.find((it) => it.id === id);
-      if (target) {
-        URL.revokeObjectURL(target.originalUrl);
-        if (target.result && target.result.previewUrl !== target.originalUrl) {
-          URL.revokeObjectURL(target.result.previewUrl);
-        }
-      }
-      return prev.filter((it) => it.id !== id);
-    });
-  }, []);
+  const runTask = useCallback(
+    async (item: SvgItem) =>
+      buildResult(
+        item,
+        await optimizeSvg(item.originalCode, settingsRef.current.preset, settingsRef.current.format),
+      ),
+    [],
+  );
 
-  const clearAll = useCallback(() => {
-    itemsRef.current.forEach((it) => {
-      URL.revokeObjectURL(it.originalUrl);
-      if (it.result && it.result.previewUrl !== it.originalUrl) {
-        URL.revokeObjectURL(it.result.previewUrl);
-      }
-    });
-    genRef.current += 1; // 终止进行中的压缩
-    setItems([]);
-    setBusy(false);
-    setNotice(null);
-  }, []);
+  const {
+    items,
+    itemsRef,
+    busy,
+    notice,
+    setNotice,
+    addFiles,
+    removeItem,
+    clearAll,
+    recompressAll,
+  } = useWorkbench<SvgItem>({
+    buildItems,
+    runTask,
+    errorMessage: describeError,
+    concurrency: 0, // Worker 池内部自控并发
+    revokeResult: (result, item) => {
+      if (result.previewUrl !== item.originalUrl) URL.revokeObjectURL(result.previewUrl);
+    },
+  });
+
+  // 设置变更：全部重新压缩（防抖）
+  useDebouncedEffect(() => {
+    recompressAll();
+  }, [JSON.stringify(settings)], 300);
 
   const downloadOne = useCallback((item: SvgItem) => {
     if (!item.result) return;
@@ -229,7 +169,7 @@ export default function SvgCompressorPage() {
     } finally {
       setZipping(false);
     }
-  }, []);
+  }, [itemsRef]);
 
   const compareItem = items.find((it) => it.id === compareId && it.result) ?? null;
   const resultCount = items.filter((it) => it.result).length;
@@ -259,7 +199,11 @@ export default function SvgCompressorPage() {
             <p className={styles.subtitle}>{messages.svg.subtitle}</p>
           </div>
           <div className={styles.toolbar}>
-            <button className="btn" disabled={busy || items.length === 0} onClick={() => void startCompress()}>
+            <button
+              className="btn"
+              disabled={busy || items.length === 0}
+              onClick={() => void recompressAll()}
+            >
               <RefreshIcon size={14} />
               {messages.svg.recompress}
             </button>
@@ -277,7 +221,6 @@ export default function SvgCompressorPage() {
             </button>
           </div>
         </div>
-
       </header>
 
       <div className={styles.columns}>
@@ -292,14 +235,7 @@ export default function SvgCompressorPage() {
             onFiles={addFiles}
           />
 
-          {notice && (
-            <div className={styles.notice}>
-              <span>{notice}</span>
-              <button className={styles.noticeClose} onClick={() => setNotice(null)}>
-                ✕
-              </button>
-            </div>
-          )}
+          {notice && <Notice text={notice} onClose={() => setNotice(null)} />}
 
           <button
             className={styles.mobileSettingsToggle}
@@ -314,30 +250,27 @@ export default function SvgCompressorPage() {
             {items.length > 0 && (
               <>
                 {busy && (
-                  <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: `${overallPct}%` }} />
-                    <span>
-                      {messages.svg.processed} {finishedCount} {messages.svg.of} {items.length} ·{' '}
-                      {overallPct}%
-                    </span>
-                  </div>
+                  <ProgressBar
+                    percent={overallPct}
+                    done={finishedCount}
+                    total={items.length}
+                    processedLabel={messages.svg.processed}
+                    ofLabel={messages.svg.of}
+                  />
                 )}
                 {doneItems.length > 0 && (
-                  <div className={styles.summary}>
-                    <span>
-                      {messages.svg.summary} {doneItems.length} {messages.svg.files} ·{' '}
-                      {messages.svg.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
-                      {messages.svg.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
-                      {messages.svg.totalRatio}:{' '}
-                      <b
-                        className={
-                          totalCompressed > totalOriginal ? styles.summaryBad : styles.summaryGood
-                        }
-                      >
-                        {ratioPercent(totalOriginal, totalCompressed)}
-                      </b>
-                    </span>
-                  </div>
+                  <SummaryBar
+                    summaryLabel={messages.svg.summary}
+                    count={doneItems.length}
+                    countUnit={messages.svg.files}
+                    originalLabel={messages.svg.original}
+                    originalValue={formatBytes(totalOriginal)}
+                    compressedLabel={messages.svg.compressed}
+                    compressedValue={formatBytes(totalCompressed)}
+                    ratioLabel={messages.svg.totalRatio}
+                    ratioValue={ratioPercent(totalOriginal, totalCompressed)}
+                    bad={totalCompressed > totalOriginal}
+                  />
                 )}
                 <div className={styles.grid}>
                   {items.map((it) => (

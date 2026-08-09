@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { messages } from '@/shared/i18n/zh';
 import { DownloadIcon, RefreshIcon, TrashIcon } from '@/shared/components/Icons';
 import FileDropZone from '@/shared/components/FileDropZone/FileDropZone';
+import Notice from '@/shared/components/Notice/Notice';
+import ProgressBar from '@/shared/components/ProgressBar/ProgressBar';
+import SummaryBar from '@/shared/components/SummaryBar/SummaryBar';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
 import { usePersistedState } from '@/shared/hooks/usePersistedState';
+import { useWorkbench } from '@/shared/hooks/useWorkbench';
 import { downloadUrl } from '@/shared/lib/download';
 import { formatBytes, ratioPercent } from '@/shared/lib/format';
 import { imageHasTransparency } from '@/shared/lib/hasTransparency';
@@ -12,14 +16,13 @@ import ImageCard from '@/features/image-compressor/components/ImageCard';
 import SettingsPanel from '@/features/image-compressor/components/SettingsPanel';
 import { compressImage } from '@/features/image-compressor/lib/compress';
 import { outputFileName } from '@/features/image-compressor/lib/filenames';
-import { runPool } from '@/features/image-compressor/lib/queue';
-import type { CompressSettings, ImageItem } from '@/features/image-compressor/lib/types';
 import {
   MAX_FILE_SIZE,
   MAX_IMAGE_PIXELS,
   MAX_IMAGE_SIDE,
   readImageDimensions,
 } from '@/features/image-compressor/lib/imageInfo';
+import type { CompressSettings, ImageItem } from '@/features/image-compressor/lib/types';
 import { buildZipBlob } from '@/features/image-compressor/lib/zip';
 import styles from '@/features/image-compressor/ImageCompressorPage.module.css';
 
@@ -83,113 +86,22 @@ function describeError(err: unknown): string {
 }
 
 export default function ImageCompressorPage() {
-  const [items, setItems] = useState<ImageItem[]>([]);
   const [settings, setSettings] = usePersistedState<CompressSettings>(
     'devkits.image.settings',
     DEFAULT_SETTINGS,
   );
-  const [busy, setBusy] = useState(false);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
   const [zipping, setZipping] = useState(false);
-  const [needCompress, setNeedCompress] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
 
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-  const genRef = useRef(0);
-  // 待压缩目标：null = 全部（设置变更/手动压缩），id 列表 = 仅新增的图片
-  const compressTargetRef = useRef<string[] | null>(null);
-
-  const updateItem = useCallback((id: string, patch: Partial<ImageItem>) => {
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
-  }, []);
-
-  const startCompress = useCallback(async (targetIds?: string[]) => {
-    const current = itemsRef.current;
-    const idSet = targetIds ? new Set(targetIds) : null;
-    // 目标 = 指定 id（含正在进行中的项），未指定则为全部
-    const targets = current.filter((it) => {
-      if (it.status === 'unsupported') return false;
-      if (!idSet) return true;
-      return idSet.has(it.id) || it.status === 'pending' || it.status === 'processing';
-    });
-    if (targets.length === 0) return;
-    const targetSet = new Set(targets.map((it) => it.id));
-
-    const gen = ++genRef.current;
-    // unsupported（如 SVG）保留在列表中，不参与压缩
-    const snapshot = current.map((it) => {
-      if (!targetSet.has(it.id)) return it;
-      if (it.status === 'unsupported') return it;
-      if (it.result) URL.revokeObjectURL(it.result.url);
-      return { ...it, status: 'pending' as const, result: undefined, error: undefined, progress: undefined };
-    });
-    setItems(snapshot);
-    setBusy(true);
-    const runSettings = settingsRef.current;
-
-    await runPool(
-      targets,
-      async (item) => {
-        if (genRef.current !== gen) return;
-        updateItem(item.id, { status: 'processing', progress: 0 });
-        let lastReported = 0;
-        try {
-          const result = await compressImage(item.file, runSettings, (p) => {
-            if (genRef.current !== gen) return;
-            if (p - lastReported >= 0.05 || p >= 1) {
-              lastReported = p;
-              updateItem(item.id, { progress: p });
-            }
-          });
-          if (genRef.current !== gen) return;
-          updateItem(item.id, { status: 'done', result, progress: 1 });
-        } catch (err) {
-          if (genRef.current !== gen) return;
-          updateItem(item.id, { status: 'error', error: describeError(err) });
-        }
-      },
-      CONCURRENCY,
-    );
-
-    if (genRef.current === gen) setBusy(false);
-  }, [updateItem]);
-
-  useEffect(() => {
-    if (!needCompress) return;
-    setNeedCompress(false);
-    const target = compressTargetRef.current;
-    compressTargetRef.current = null;
-    void startCompress(target ?? undefined);
-  }, [needCompress, startCompress]);
-
-  useDebouncedEffect(
-    () => {
-      if (itemsRef.current.length > 0) {
-        compressTargetRef.current = null; // 设置变更：全部重新压缩
-        setNeedCompress(true);
-      }
-    },
-    [JSON.stringify(settings)],
-    300,
-  );
-
-  const addFiles = useCallback(async (files: File[]) => {
+  const buildItems = useCallback(async (files: File[]) => {
     const notices: string[] = [];
-
-    // 总数最多 50 张（支持与不支持都计入）：超出部分忽略并提示
-    const remaining = Math.max(0, MAX_FILES_PER_BATCH - itemsRef.current.length);
-    const limited = files.slice(0, remaining);
-    if (limited.length !== files.length) {
-      notices.push(messages.image.fileCountExceeded(files.length - limited.length));
-    }
-
-    const supported = limited.filter((f) => ALLOWED_TYPES.includes(f.type));
-    const unsupported = limited.filter((f) => !ALLOWED_TYPES.includes(f.type));
+    const supported = files.filter((f) => ALLOWED_TYPES.includes(f.type));
+    const unsupported = files.filter((f) => !ALLOWED_TYPES.includes(f.type));
 
     // 支持格式：大小过滤
     const sizeOk = supported.filter((f) => f.size <= MAX_FILE_SIZE);
@@ -212,8 +124,6 @@ export default function ImageCompressorPage() {
       if (dimOk.length !== sizeOk.length) notices.push(messages.image.imageTooLarge);
       valid = dimOk;
     }
-
-    setNotice(notices.length > 0 ? notices.join('；') : null);
 
     const validWithAlpha = await Promise.all(
       valid.map(async (file) => ({
@@ -241,36 +151,44 @@ export default function ImageCompressorPage() {
         error: messages.image.unsupportedFormat(formatLabel(file)),
       })),
     ];
-    if (created.length === 0) return;
-    setItems((prev) => [...created, ...prev]); // 最新上传的排在最前
-    if (validItems.length > 0) {
-      compressTargetRef.current = validItems.map((it) => it.id); // 只压缩新上传的图片
-      setNeedCompress(true);
-    }
+    return {
+      created,
+      compressIds: validItems.map((it) => it.id), // 只压缩新上传的图片
+      notice: notices.length > 0 ? notices.join('；') : undefined,
+    };
   }, []);
 
-  const removeItem = useCallback((id: string) => {
-    const target = itemsRef.current.find((it) => it.id === id);
-    if (target) {
-      URL.revokeObjectURL(target.originalUrl);
-      if (target.result) URL.revokeObjectURL(target.result.url);
-    }
-    const next = itemsRef.current.filter((it) => it.id !== id);
-    // 删除后数量低于 50 上限时，关闭“最多 50 张”相关提示
-    if (next.length < MAX_FILES_PER_BATCH) setNotice(null);
-    setItems(next);
-  }, []);
+  const runTask = useCallback(
+    async (item: ImageItem, onProgress?: (p: number) => void) =>
+      compressImage(item.file, settingsRef.current, onProgress),
+    [],
+  );
 
-  const clearAll = useCallback(() => {
-    itemsRef.current.forEach((it) => {
-      URL.revokeObjectURL(it.originalUrl);
-      if (it.result) URL.revokeObjectURL(it.result.url);
-    });
-    genRef.current += 1; // 终止进行中的压缩
-    setItems([]);
-    setBusy(false);
-    setNotice(null);
-  }, []);
+  const {
+    items,
+    itemsRef,
+    busy,
+    notice,
+    setNotice,
+    addFiles,
+    removeItem,
+    clearAll,
+    recompressAll,
+  } = useWorkbench<ImageItem>({
+    maxItems: MAX_FILES_PER_BATCH,
+    tooManyNotice: (n) => messages.image.fileCountExceeded(n),
+    buildItems,
+    runTask,
+    errorMessage: describeError,
+    concurrency: CONCURRENCY,
+    withProgress: true,
+    revokeResult: (result) => URL.revokeObjectURL(result.url),
+  });
+
+  // 设置变更：全部重新压缩（防抖）
+  useDebouncedEffect(() => {
+    recompressAll();
+  }, [JSON.stringify(settings)], 300);
 
   const downloadOne = useCallback((item: ImageItem) => {
     if (!item.result) return;
@@ -296,7 +214,7 @@ export default function ImageCompressorPage() {
     } finally {
       setZipping(false);
     }
-  }, []);
+  }, [itemsRef]);
 
   const compareItem = items.find((it) => it.id === compareId && it.result) ?? null;
   const resultCount = items.filter((it) => it.result).length;
@@ -330,7 +248,7 @@ export default function ImageCompressorPage() {
             <button
               className="btn"
               disabled={busy || !items.some((it) => it.status !== 'unsupported')}
-              onClick={() => void startCompress()}
+              onClick={() => void recompressAll()}
             >
               <RefreshIcon size={14} />
               {messages.image.recompress}
@@ -349,7 +267,6 @@ export default function ImageCompressorPage() {
             </button>
           </div>
         </div>
-
       </header>
 
       <div className={styles.columns}>
@@ -365,14 +282,7 @@ export default function ImageCompressorPage() {
             onFiles={addFiles}
           />
 
-          {notice && (
-            <div className={styles.notice}>
-              <span>{notice}</span>
-              <button className={styles.noticeClose} onClick={() => setNotice(null)}>
-                ✕
-              </button>
-            </div>
-          )}
+          {notice && <Notice text={notice} onClose={() => setNotice(null)} />}
 
           <button
             className={styles.mobileSettingsToggle}
@@ -387,36 +297,32 @@ export default function ImageCompressorPage() {
             {items.length > 0 && (
               <>
                 {busy && (
-                  <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: `${overallPct}%` }} />
-                    <span>
-                      {messages.image.processed} {finishedCount} {messages.image.of} {items.length} ·{' '}
-                      {overallPct}%
-                    </span>
-                  </div>
+                  <ProgressBar
+                    percent={overallPct}
+                    done={finishedCount}
+                    total={items.length}
+                    processedLabel={messages.image.processed}
+                    ofLabel={messages.image.of}
+                  />
                 )}
                 {doneItems.length > 0 && (
-                  <div className={styles.summary}>
-                    <span>
-                      {messages.image.summary} {doneItems.length} {messages.image.images} ·{' '}
-                      {messages.image.original}: <b>{formatBytes(totalOriginal)}</b> ·{' '}
-                      {messages.image.compressed}: <b>{formatBytes(totalCompressed)}</b> ·{' '}
-                      {messages.image.totalRatio}:{' '}
-                      <b
-                        className={
-                          totalCompressed > totalOriginal ? styles.summaryBad : styles.summaryGood
-                        }
-                      >
-                        {ratioPercent(totalOriginal, totalCompressed)}
-                      </b>
-                      {unsupportedCount > 0 && (
-                        <span className={styles.summaryUnsupported}>
-                          {' · '}
-                          {messages.image.unsupportedSummary(unsupportedCount)}
-                        </span>
-                      )}
-                    </span>
-                  </div>
+                  <SummaryBar
+                    summaryLabel={messages.image.summary}
+                    count={doneItems.length}
+                    countUnit={messages.image.images}
+                    originalLabel={messages.image.original}
+                    originalValue={formatBytes(totalOriginal)}
+                    compressedLabel={messages.image.compressed}
+                    compressedValue={formatBytes(totalCompressed)}
+                    ratioLabel={messages.image.totalRatio}
+                    ratioValue={ratioPercent(totalOriginal, totalCompressed)}
+                    bad={totalCompressed > totalOriginal}
+                    extra={
+                      unsupportedCount > 0
+                        ? ` · ${messages.image.unsupportedSummary(unsupportedCount)}`
+                        : undefined
+                    }
+                  />
                 )}
                 <div className={styles.grid}>
                   {items.map((it) => (

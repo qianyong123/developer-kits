@@ -1,0 +1,20 @@
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(230, 162, 60, 0.12);
+  border: 1px solid rgba(230, 162, 60, 0.35);
+  color: var(--warning);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.noticeClose {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 13px;
+}
