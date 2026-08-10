@@ -17,6 +17,7 @@ import SvgCompareDialog from '@/features/svg-compressor/components/SvgCompareDia
 import SvgSettingsPanel from '@/features/svg-compressor/components/SvgSettingsPanel';
 import { disposeWorkerPool, optimizeSvg } from '@/features/svg-compressor/lib/optimize';
 import {
+  analyzeEmbeddedImages,
   isSvgFile,
   isSvgzName,
   MAX_SVG_FILE_SIZE,
@@ -45,6 +46,8 @@ const DEFAULT_SETTINGS: SvgSettings = {
   preset: 'balanced',
   format: 'svg',
 };
+
+const MAX_FILES_PER_BATCH = 50;
 
 let idCounter = 0;
 const nextId = () => `svg-${++idCounter}`;
@@ -94,6 +97,7 @@ export default function SvgCompressorPage() {
           originalSize: file.size,
           originalCode,
           hasTransparency,
+          embeddedImages: analyzeEmbeddedImages(originalCode, file.size),
           status: 'pending',
         });
       } catch {
@@ -127,6 +131,8 @@ export default function SvgCompressorPage() {
     clearAll,
     recompressAll,
   } = useWorkbench<SvgItem>({
+    maxItems: MAX_FILES_PER_BATCH,
+    tooManyNotice: (n) => messages.svg.fileCountExceeded(n),
     buildItems,
     runTask,
     errorMessage: describeError,
@@ -300,6 +306,11 @@ export default function SvgCompressorPage() {
           <SvgSettingsPanel
             settings={settings}
             onChange={setSettings}
+            totals={{
+              count: doneItems.length,
+              original: totalOriginal,
+              compressed: totalCompressed,
+            }}
             collapsed={mobileSettingsOpen ? false : settingsCollapsed}
             onToggleCollapse={() => setSettingsCollapsed((v) => !v)}
           />

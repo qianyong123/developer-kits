@@ -1,3 +1,5 @@
+import type { EmbeddedImageInfo } from '@/features/svg-compressor/lib/svgFile';
+
 export type SvgPreset = 'high' | 'balanced' | 'extreme';
 export type SvgOutputFormat = 'svg' | 'svgz';
 
@@ -28,6 +30,8 @@ export interface SvgItem {
   originalCode: string;
   /** 预览背景选择依据：是否含透明像素 */
   hasTransparency?: boolean;
+  /** 内嵌 base64 图片检测结果（体积主要来自内嵌图片时用于提示） */
+  embeddedImages?: EmbeddedImageInfo;
   status: SvgItemStatus;
   result?: SvgResult;
   error?: string;

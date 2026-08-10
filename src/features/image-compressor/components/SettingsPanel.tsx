@@ -2,6 +2,7 @@ import { messages } from '@/shared/i18n/zh';
 import { ChevronDownIcon } from '@/shared/components/Icons';
 import HelpTip from '@/shared/components/HelpTip/HelpTip';
 import { formatBytes, ratioPercent } from '@/shared/lib/format';
+import SaveCard from '@/shared/components/SaveCard/SaveCard';
 import type { FormatOption } from '@/features/image-compressor/lib/encoders';
 import type { CompressSettings } from '@/features/image-compressor/lib/types';
 import styles from '@/features/image-compressor/components/SettingsPanel.module.css';
@@ -206,20 +207,15 @@ export default function SettingsPanel({
             </div>
           </div>
 
-          <div className={styles.saveCard}>
-            <div className={styles.saveHeader}>
-              <span className={styles.saveLabel}>{messages.image.estimatedSave}</span>
-              <strong className={styles.saveValue}>{formatBytes(Math.max(0, saved))}</strong>
-              <strong className={styles.saveRatio}>{ratio}</strong>
-            </div>
-            <div className={styles.saveBar}>
-              <div className={styles.saveFill} style={{ width: `${savedPct}%` }} />
-            </div>
-            <div className={styles.saveMeta}>
-              {messages.image.saveRate}: {formatBytes(totals.original)} →{' '}
-              {formatBytes(totals.compressed)}
-            </div>
-          </div>
+          <SaveCard
+            label={messages.image.estimatedSave}
+            savedValue={formatBytes(Math.max(0, saved))}
+            ratio={ratio}
+            percent={savedPct}
+            meta={`${messages.image.saveRate}: ${formatBytes(totals.original)} → ${formatBytes(
+              totals.compressed,
+            )}`}
+          />
 
         </>
       )}

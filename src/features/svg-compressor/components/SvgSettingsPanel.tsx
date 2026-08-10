@@ -1,6 +1,8 @@
 import { messages } from '@/shared/i18n/zh';
 import { ChevronDownIcon } from '@/shared/components/Icons';
 import HelpTip from '@/shared/components/HelpTip/HelpTip';
+import SaveCard from '@/shared/components/SaveCard/SaveCard';
+import { formatBytes, ratioPercent } from '@/shared/lib/format';
 import { SVG_PRESETS } from '@/features/svg-compressor/lib/presets';
 import type { SvgSettings } from '@/features/svg-compressor/lib/types';
 import styles from '@/features/svg-compressor/components/SvgSettingsPanel.module.css';
@@ -8,6 +10,7 @@ import styles from '@/features/svg-compressor/components/SvgSettingsPanel.module
 interface Props {
   settings: SvgSettings;
   onChange: (settings: SvgSettings) => void;
+  totals: { count: number; original: number; compressed: number };
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
@@ -15,11 +18,19 @@ interface Props {
 export default function SvgSettingsPanel({
   settings,
   onChange,
+  totals,
   collapsed,
   onToggleCollapse,
 }: Props) {
   const set = (patch: Partial<SvgSettings>) => onChange({ ...settings, ...patch });
   const activePreset = SVG_PRESETS.find((p) => p.id === settings.preset) ?? SVG_PRESETS[1];
+  const saved = totals.original - totals.compressed;
+  const ratio =
+    totals.count > 0 && totals.original > 0
+      ? ratioPercent(totals.original, totals.compressed)
+      : '0%';
+  const savedPct =
+    totals.original > 0 ? Math.min(100, Math.max(0, (saved / totals.original) * 100)) : 0;
 
   return (
     <div className={styles.panel}>
@@ -99,6 +110,16 @@ export default function SvgSettingsPanel({
               </button>
             </div>
           </div>
+
+          <SaveCard
+            label={messages.svg.estimatedSave}
+            savedValue={formatBytes(Math.max(0, saved))}
+            ratio={ratio}
+            percent={savedPct}
+            meta={`${messages.svg.saveRate}: ${formatBytes(totals.original)} → ${formatBytes(
+              totals.compressed,
+            )}`}
+          />
         </>
       )}
     </div>

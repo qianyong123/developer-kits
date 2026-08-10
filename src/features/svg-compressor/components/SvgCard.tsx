@@ -77,6 +77,16 @@ export default function SvgCard({ item, previewBg, onRemove, onDownload, onCompa
           )}
         </div>
         {result?.note === 'kept-original' && <div className={styles.note}>{messages.svg.noteKeptOriginal}</div>}
+        {item.embeddedImages &&
+          item.embeddedImages.count > 0 &&
+          item.embeddedImages.ratio >= 0.3 && (
+            <div className={styles.note}>
+              {messages.svg.noteEmbeddedImages(
+                item.embeddedImages.count,
+                formatBytes(item.embeddedImages.bytes),
+              )}
+            </div>
+          )}
       </div>
       <div className={styles.actions}>
         <button

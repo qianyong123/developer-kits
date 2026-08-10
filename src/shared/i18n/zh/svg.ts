@@ -3,9 +3,10 @@ export const svgMessages = {
   subtitle: '批量优化 SVG，全部在本地浏览器完成（SVGO 引擎，无需上传）',
   dropTitle: '拖拽 SVG 到这里，或点击选择',
   tapTitle: '点击选择 SVG',
-  dropHint: '支持 .svg / .svgz（gzip），可多选',
+  dropHint: '支持 .svg / .svgz（gzip）· 最多 50 个',
   unsupportedFormat: (name: string) => `${name} 不是有效的 SVG 文件，已忽略`,
   fileTooLarge: '文件过大（单个最大 20MB），已忽略',
+  fileCountExceeded: (n: number) => `最多 50 个，已忽略 ${n} 个`,
   readFailed: (name: string) => `${name} 读取失败：文件可能已损坏`,
   settings: '压缩设置',
   settingsSubtitle: '调整压缩强度与输出格式',
@@ -16,6 +17,8 @@ export const svgMessages = {
   format: '输出格式',
   formatSvg: 'SVG',
   formatSvgz: 'SVGZ（gzip）',
+  estimatedSave: '预计节省',
+  saveRate: '压缩率',
   settingsHelp: {
     preset:
       '高保真：仅做结构清理，坐标精度保留 3 位小数；平衡（推荐）：精度 2 位 + 多轮优化；极限：尝试路径复用等进阶优化并自动选取更小结果。三档均不简化几何形状，渲染结果保持一致。',
@@ -48,6 +51,8 @@ export const svgMessages = {
   download: '下载',
   remove: '移除',
   noteKeptOriginal: '原文件已是最优，保留原文件',
+  noteEmbeddedImages: (count: number, sizeText: string) =>
+    `提示：体积主要来自 ${count} 张内嵌图片（约 ${sizeText}），建议单独压缩图片`,
   errorParse: 'SVG 解析失败：文件可能不是有效的 SVG',
   errorWorker: '压缩任务执行失败，请重试',
 } as const;
