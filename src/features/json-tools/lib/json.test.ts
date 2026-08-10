@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   diffJson,
+  errorContext,
   findDuplicateKeys,
   formatDiffReport,
   formatJson,
   jsonToTsTypes,
   minifyJson,
   offsetToLineCol,
+  offsetFromLineCol,
   parseJson,
   parseJsonStrict,
   shortValue,
@@ -201,6 +203,32 @@ describe('工具函数', () => {
 
   it('offsetToLineCol 换算行列', () => {
     expect(offsetToLineCol('ab\ncd\nef', 5)).toEqual({ line: 2, column: 3 });
+  });
+
+  it('offsetFromLineCol 与 offsetToLineCol 互逆', () => {
+    const text = 'ab\ncd\nef';
+    expect(offsetFromLineCol(text, 2, 3)).toBe(5);
+    expect(offsetToLineCol(text, offsetFromLineCol(text, 3, 2))).toEqual({ line: 3, column: 2 });
+  });
+
+  it('errorContext 截取报错位置前后片段', () => {
+    const ctx = errorContext('{"a": 1, "b": }', { message: 'x', offset: 14 });
+    expect(ctx).not.toBeNull();
+    expect(ctx!.before).toBe('{"a": 1, "b": ');
+    expect(ctx!.after[0]).toBe('}');
+    expect(ctx!.hasAfter).toBe(false);
+  });
+
+  it('errorContext 无 offset 时按行列反算', () => {
+    const text = '{\n  "a": 1,\n  "b": \n}';
+    const ctx = errorContext(text, { message: 'x', line: 3, column: 8 }, 8);
+    expect(ctx).not.toBeNull();
+    expect(ctx!.before).toContain('"b"');
+  });
+
+  it('errorContext 换行显示为可见符号', () => {
+    const ctx = errorContext('{"a":\n1}', { message: 'x', offset: 5 }, 10);
+    expect(ctx!.after).toContain('↵');
   });
 
   it('shortValue 截断超长值', () => {

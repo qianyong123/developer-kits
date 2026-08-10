@@ -6,6 +6,8 @@ import { create } from 'zustand';
  */
 interface JsonToolsState {
   input: string;
+  /** 类型模式独立的输入（与格式化校验模式互不干扰） */
+  typeInput: string;
   before: string;
   after: string;
   indent: number;
@@ -13,6 +15,7 @@ interface JsonToolsState {
   unwrap: boolean;
   lenient: boolean;
   setInput: (value: string) => void;
+  setTypeInput: (value: string) => void;
   setBefore: (value: string) => void;
   setAfter: (value: string) => void;
   setIndent: (value: number) => void;
@@ -24,6 +27,7 @@ interface JsonToolsState {
 
 export const useJsonToolsStore = create<JsonToolsState>()((set) => ({
   input: '',
+  typeInput: '',
   before: '',
   after: '',
   indent: 2,
@@ -31,11 +35,12 @@ export const useJsonToolsStore = create<JsonToolsState>()((set) => ({
   unwrap: false,
   lenient: false,
   setInput: (input) => set({ input }),
+  setTypeInput: (typeInput) => set({ typeInput }),
   setBefore: (before) => set({ before }),
   setAfter: (after) => set({ after }),
   setIndent: (indent) => set({ indent }),
   setSortKeys: (sortKeys) => set({ sortKeys }),
   setUnwrap: (unwrap) => set({ unwrap }),
   setLenient: (lenient) => set({ lenient }),
-  clearData: () => set({ input: '', before: '', after: '' }),
+  clearData: () => set({ input: '', typeInput: '', before: '', after: '' }),
 }));

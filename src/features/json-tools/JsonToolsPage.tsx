@@ -10,6 +10,7 @@ import { JsonView, defaultStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 import {
   diffJson,
+  errorContext,
   formatDiffReport,
   formatJson,
   jsonToTsTypes,
@@ -30,7 +31,8 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const EDITOR_PADDING_TOP = 12;
 const EDITOR_LINE_HEIGHT = 20.8; // 13px * 1.6，与 CSS 保持一致
 
-type JsonMode = 'format' | 'minify' | 'validate' | 'diff' | 'type';
+type JsonMode = 'process' | 'diff' | 'type';
+type ProcessAction = 'format' | 'minify' | 'validate';
 
 type OutputState =
   | { kind: 'idle' }
@@ -82,12 +84,17 @@ function JsonEditor({
 }
 
 const MODES: Array<{ id: JsonMode; label: string }> = [
-  { id: 'format', label: messages.json.modeFormat },
-  { id: 'minify', label: messages.json.modeMinify },
-  { id: 'validate', label: messages.json.modeValidate },
+  { id: 'process', label: messages.json.modeProcess },
   { id: 'diff', label: messages.json.modeDiff },
   { id: 'type', label: messages.json.modeType },
 ];
+
+const PROCESS_ACTIONS: ProcessAction[] = ['format', 'minify', 'validate'];
+const PROCESS_ACTION_LABELS: Record<ProcessAction, string> = {
+  format: messages.json.modeFormat,
+  minify: messages.json.modeMinify,
+  validate: messages.json.modeValidate,
+};
 
 const SAMPLE = JSON.stringify(
   {
@@ -124,10 +131,33 @@ const SAMPLE_AFTER = JSON.stringify(
   2,
 );
 
+/** 对比结果中的单个变更值：复杂值用可折叠 JSON 树，简单值直接展示。 */
+function ChangeValue({ value }: { value: unknown }) {
+  if (isPrimitive(value)) {
+    return <span className={styles.changeValue}>{shortValue(value, 160)}</span>;
+  }
+  return (
+    <div className={styles.changeValueTree}>
+      <JsonView
+        data={value as object}
+        style={defaultStyles}
+        shouldExpandNode={(level) => level < 1}
+      />
+    </div>
+  );
+}
+
+function isPrimitive(value: unknown): boolean {
+  return value === null || typeof value !== 'object';
+}
+
 export default function JsonToolsPage() {
-  const [mode, setMode] = useState<JsonMode>('format');
+  const [mode, setMode] = useState<JsonMode>('process');
+  const [action, setAction] = useState<ProcessAction>('format');
   const input = useJsonToolsStore((s) => s.input);
   const setInput = useJsonToolsStore((s) => s.setInput);
+  const typeInput = useJsonToolsStore((s) => s.typeInput);
+  const setTypeInput = useJsonToolsStore((s) => s.setTypeInput);
   const before = useJsonToolsStore((s) => s.before);
   const setBefore = useJsonToolsStore((s) => s.setBefore);
   const after = useJsonToolsStore((s) => s.after);
@@ -166,13 +196,13 @@ export default function JsonToolsPage() {
     setOutput({ kind: 'diff', changes: diffJson(beforeValue, afterValue) });
   }, [before, after, unwrap, lenient]);
 
-  const run = useCallback(() => {
+  const runAction = useCallback((act: ProcessAction) => {
     if (input.trim() === '') {
       setOutput({ kind: 'idle' });
       return;
     }
 
-    if (mode === 'validate') {
+    if (act === 'validate') {
       const result = validateJson(input, { unwrapString: unwrap, lenient });
       if (!result.ok) {
         setOutput({ kind: 'error', error: result.error! });
@@ -186,39 +216,39 @@ export default function JsonToolsPage() {
       return;
     }
 
-    if (mode === 'type') {
-      const parsed = parseJson(input, { lenient });
-      if (!parsed.ok) {
-        setOutput({ kind: 'error', error: parsed.error });
-        return;
-      }
-      const value = unwrap ? unwrapJsonString(parsed.value, lenient) : parsed.value;
-      setOutput({ kind: 'text', text: jsonToTsTypes(value), value, bigNumbers: [] });
-      return;
-    }
-
     const result =
-      mode === 'format'
+      act === 'format'
         ? formatJson(input, { indent, sortKeys, unwrapString: unwrap, lenient })
         : minifyJson(input, { unwrapString: unwrap, lenient });
     if (!result.ok) {
       setOutput({ kind: 'error', error: result.error });
       return;
     }
-    setOutput({
-      kind: 'text',
-      text: result.text,
-      value: result.value,
-      bigNumbers: result.bigNumbers,
-    });
-  }, [mode, input, indent, sortKeys, unwrap, lenient]);
+    // 格式化/压缩：结果直接写回输入框
+    setInput(result.text);
+    setOutput({ kind: 'idle' });
+  }, [input, indent, sortKeys, unwrap, lenient, setInput]);
 
-  // 格式化/压缩/校验自动处理；对比模式改为点击“开始对比”手动触发
+  const runType = useCallback(() => {
+    if (typeInput.trim() === '') {
+      setOutput({ kind: 'idle' });
+      return;
+    }
+    const parsed = parseJson(typeInput, { lenient });
+    if (!parsed.ok) {
+      setOutput({ kind: 'error', error: parsed.error });
+      return;
+    }
+    const value = unwrap ? unwrapJsonString(parsed.value, lenient) : parsed.value;
+    setOutput({ kind: 'text', text: jsonToTsTypes(value), value, bigNumbers: [] });
+  }, [typeInput, unwrap, lenient]);
+
+  // 类型模式自动处理；处理/对比模式改为点击按钮手动触发
   useDebouncedEffect(
     () => {
-      if (mode !== 'diff') run();
+      if (mode === 'type') runType();
     },
-    [mode, input, indent, sortKeys, unwrap, lenient],
+    [mode, runType],
     250,
   );
 
@@ -228,12 +258,13 @@ export default function JsonToolsPage() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         if (mode === 'diff') runDiff();
-        else run();
+        else if (mode === 'type') runType();
+        else runAction(action);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mode, run, runDiff]);
+  }, [mode, action, runAction, runDiff, runType]);
 
   // 进入对比模式时清空旧输出，等待手动触发
   useEffect(() => {
@@ -250,21 +281,24 @@ export default function JsonToolsPage() {
       reader.onload = () => {
         const text = String(reader.result ?? '');
         if (mode === 'diff') setBefore(text);
+        else if (mode === 'type') setTypeInput(text);
         else setInput(text);
       };
       reader.readAsText(file);
     },
-    [mode, setBefore, setInput],
+    [mode, setBefore, setTypeInput, setInput],
   );
 
   const loadSample = useCallback(() => {
     if (mode === 'diff') {
       setBefore(SAMPLE_BEFORE);
       setAfter(SAMPLE_AFTER);
+    } else if (mode === 'type') {
+      setTypeInput(SAMPLE);
     } else {
       setInput(SAMPLE);
     }
-  }, [mode, setBefore, setAfter, setInput]);
+  }, [mode, setBefore, setAfter, setTypeInput, setInput]);
 
   const clearAll = useCallback(() => {
     clearData();
@@ -289,6 +323,15 @@ export default function JsonToolsPage() {
     }
   }, [output]);
 
+  /** 下载内容：处理模式下载输入框当前内容（校验模式下载校验报告） */
+  const downloadText = useMemo(() => {
+    if (mode === 'process') {
+      if (action === 'validate') return output.kind === 'valid' ? reportText : '';
+      return input;
+    }
+    return reportText;
+  }, [mode, action, input, output, reportText]);
+
   const copyOutput = useCallback(async () => {
     if (!reportText) return;
     if (await copyText(reportText)) {
@@ -299,36 +342,110 @@ export default function JsonToolsPage() {
     }
   }, [reportText]);
 
+  const copyInput = useCallback(async () => {
+    if (!input) return;
+    if (await copyText(input)) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } else {
+      setNotice(messages.json.copyFailed);
+    }
+  }, [input]);
+
   const downloadOutput = useCallback(() => {
-    if (!reportText) return;
-    const blob = new Blob([reportText], {
+    if (!downloadText) return;
+    const blob = new Blob([downloadText], {
       type:
-        mode === 'diff' || mode === 'validate' || mode === 'type'
+        mode === 'diff' ||
+        mode === 'type' ||
+        (mode === 'process' && action === 'validate')
           ? 'text/plain;charset=utf-8'
           : 'application/json',
     });
     const url = URL.createObjectURL(blob);
-    downloadUrl(url, messages.json.downloadName[mode]);
+    const fileName =
+      mode === 'process'
+        ? messages.json.downloadName[action]
+        : messages.json.downloadName[mode];
+    downloadUrl(url, fileName);
     setTimeout(() => URL.revokeObjectURL(url), 30_000);
-  }, [reportText, mode]);
+  }, [downloadText, mode, action]);
 
-  const errorView = (error: JsonError, side?: 'before' | 'after') => (
-    <div className={styles.errorBox}>
-      <strong>{messages.json.invalid}</strong>
-      {side && <span className={styles.errorSide}>{side === 'before' ? messages.json.beforeLabel : messages.json.afterLabel}</span>}
-      {error.line !== undefined && error.column !== undefined && (
-        <span className={styles.errorPos}>{messages.json.errorLineCol(error.line, error.column)}</span>
+  const errorView = (error: JsonError, side: 'before' | 'after' | undefined, text: string) => {
+    const ctx = errorContext(text, error);
+    return (
+      <div className={styles.errorBox}>
+        <strong>{mode === 'type' ? messages.json.typeErrorTitle : messages.json.invalid}</strong>
+        {side && (
+          <span className={styles.errorSide}>
+            {side === 'before' ? messages.json.beforeLabel : messages.json.afterLabel}
+          </span>
+        )}
+        {error.line !== undefined && error.column !== undefined && (
+          <span className={styles.errorPos}>{messages.json.errorLineCol(error.line, error.column)}</span>
+        )}
+        <p className={styles.errorMessage}>{error.message}</p>
+        {ctx && (
+          <div className={styles.errorContext}>
+            <code className={styles.errorCode}>
+              {ctx.hasBefore && <span className={styles.errorEllipsis}>…</span>}
+              {ctx.before}
+              <mark className={styles.errorMark}>{ctx.after[0] ?? ''}</mark>
+              {ctx.after.slice(1)}
+              {ctx.hasAfter && <span className={styles.errorEllipsis}>…</span>}
+            </code>
+            <div className={styles.errorCaretRow}>
+              <span
+                className={styles.errorCaret}
+                style={{
+                  marginLeft: `${(ctx.before.length + (ctx.hasBefore ? 1 : 0)) * 0.62}em`,
+                }}
+              >
+                ↑
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const validView = (info: { duplicates: DuplicateKeyInfo[]; bigNumbers: BigNumberInfo[] }) => (
+    <div className={styles.validBox}>
+      <strong className={styles.validTitle}>✓ {messages.json.valid}</strong>
+      {info.bigNumbers.length > 0 && (
+        <div className={styles.warnings}>
+          {messages.json.bigNumberWarning(info.bigNumbers.length)}
+        </div>
       )}
-      <p className={styles.errorMessage}>{error.message}</p>
+      {info.duplicates.length > 0 && (
+        <div className={styles.warnings}>
+          <strong>{messages.json.warningsTitle}</strong>
+          {info.duplicates.map((d, i) => (
+            <p key={i}>{messages.json.duplicateKey(d.key, d.firstLine, d.secondLine)}</p>
+          ))}
+        </div>
+      )}
     </div>
   );
+
+  /** 处理模式下按钮下方的结果/错误提示 */
+  const renderProcessMessage = () => {
+    if (output.kind === 'error') return errorView(output.error, output.side, input);
+    if (output.kind === 'valid') return validView(output);
+    return null;
+  };
 
   const renderOutput = () => {
     switch (output.kind) {
       case 'idle':
         return <div className={styles.placeholder}>{messages.json.outputPlaceholder}</div>;
       case 'error':
-        return errorView(output.error, output.side);
+        return errorView(
+          output.error,
+          output.side,
+          output.side === 'before' ? before : output.side === 'after' ? after : input,
+        );
       case 'text':
         return (
           <>
@@ -337,7 +454,8 @@ export default function JsonToolsPage() {
                 {messages.json.bigNumberWarning(output.bigNumbers.length)}
               </div>
             )}
-            {mode === 'format' &&
+            {mode === 'process' &&
+            action === 'format' &&
             output.value !== null &&
             typeof output.value === 'object' ? (
               <div className={styles.jsonViewer}>
@@ -357,24 +475,7 @@ export default function JsonToolsPage() {
           </>
         );
       case 'valid':
-        return (
-          <div className={styles.validBox}>
-            <strong className={styles.validTitle}>✓ {messages.json.valid}</strong>
-            {output.bigNumbers.length > 0 && (
-              <div className={styles.warnings}>
-                {messages.json.bigNumberWarning(output.bigNumbers.length)}
-              </div>
-            )}
-            {output.duplicates.length > 0 && (
-              <div className={styles.warnings}>
-                <strong>{messages.json.warningsTitle}</strong>
-                {output.duplicates.map((d, i) => (
-                  <p key={i}>{messages.json.duplicateKey(d.key, d.firstLine, d.secondLine)}</p>
-                ))}
-              </div>
-            )}
-          </div>
-        );
+        return validView(output);
       case 'diff':
         return (
           <div className={styles.diffBox}>
@@ -392,25 +493,41 @@ export default function JsonToolsPage() {
                 <div className={styles.changeList}>
                   {output.changes.map((change, i) => (
                     <div key={i} className={styles.changeRow}>
-                      <span className={`${styles.changeBadge} ${styles[change.type]}`}>
-                        {change.type === 'added'
-                          ? messages.json.changeAdded
-                          : change.type === 'removed'
-                            ? messages.json.changeRemoved
-                            : messages.json.changeChanged}
-                      </span>
-                      <code className={styles.changePath}>{change.path}</code>
-                      {change.type === 'added' && (
-                        <span className={styles.changeValue}>{shortValue(change.after, 60)}</span>
-                      )}
-                      {change.type === 'removed' && (
-                        <span className={styles.changeValue}>{shortValue(change.before, 60)}</span>
-                      )}
-                      {change.type === 'changed' && (
-                        <span className={styles.changeValue}>
-                          {shortValue(change.before, 60)} → {shortValue(change.after, 60)}
+                      <div className={styles.changeHeader}>
+                        <span className={`${styles.changeBadge} ${styles[change.type]}`}>
+                          {change.type === 'added'
+                            ? messages.json.changeAdded
+                            : change.type === 'removed'
+                              ? messages.json.changeRemoved
+                              : messages.json.changeChanged}
                         </span>
-                      )}
+                        <code className={styles.changePath}>{change.path}</code>
+                      </div>
+                      <div className={styles.changeBody}>
+                        {change.type === 'added' && <ChangeValue value={change.after} />}
+                        {change.type === 'removed' && <ChangeValue value={change.before} />}
+                        {change.type === 'changed' &&
+                          (isPrimitive(change.before) && isPrimitive(change.after) ? (
+                            <span className={styles.changeValue}>
+                              {shortValue(change.before, 120)} → {shortValue(change.after, 120)}
+                            </span>
+                          ) : (
+                            <div className={styles.changePair}>
+                              <div className={styles.changePairSide}>
+                                <span className={styles.changeSide}>
+                                  {messages.json.beforeLabel}
+                                </span>
+                                <ChangeValue value={change.before} />
+                              </div>
+                              <div className={styles.changePairSide}>
+                                <span className={styles.changeSide}>
+                                  {messages.json.afterLabel}
+                                </span>
+                                <ChangeValue value={change.after} />
+                              </div>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -443,7 +560,7 @@ export default function JsonToolsPage() {
             <button className="btn" onClick={loadSample}>
               {messages.json.loadSample}
             </button>
-            <button className="btn" disabled={!reportText} onClick={downloadOutput}>
+            <button className="btn" disabled={!downloadText} onClick={downloadOutput}>
               <DownloadIcon size={14} />
               {messages.json.download}
             </button>
@@ -469,7 +586,7 @@ export default function JsonToolsPage() {
         </div>
 
         <div className={styles.options}>
-          {mode === 'format' && (
+          {mode === 'process' && (
             <>
             <span className={styles.optionLabel}>{messages.json.indent}</span>
             {[2, 4].map((n) => (
@@ -511,6 +628,9 @@ export default function JsonToolsPage() {
             {messages.json.lenient}
             <HelpTip text={messages.json.settingsHelp.lenient} />
           </label>
+          {mode === 'type' && (
+            <span className={styles.modeHint}>{messages.json.modeTypeHint}</span>
+          )}
           <span className={styles.shortcutHint}>{messages.json.keyboardHint}</span>
         </div>
       </header>
@@ -545,13 +665,58 @@ export default function JsonToolsPage() {
               {renderOutput()}
             </div>
           </>
-        ) : (
-          <>
+        ) : mode === 'process' ? (
+          <div className={styles.processColumn}>
             <div className={styles.editor}>
               <div className={styles.editorLabel}>{messages.json.inputLabel}</div>
               <JsonEditor
                 value={input}
                 onChange={setInput}
+                placeholder={messages.json.inputPlaceholder}
+                highlightLine={inputErrorLine}
+              />
+            </div>
+            <div className={styles.processToolbar}>
+              {PROCESS_ACTIONS.map((act) => (
+                <button
+                  key={act}
+                  type="button"
+                  className={act === action ? styles.segmentActive : styles.segment}
+                  onClick={() => {
+                    setAction(act);
+                    runAction(act);
+                  }}
+                >
+                  {PROCESS_ACTION_LABELS[act]}
+                </button>
+              ))}
+              <span className={styles.toolbarRight}>
+                <button
+                  type="button"
+                  className={styles.copyBtn}
+                  disabled={!input}
+                  onClick={() => void copyInput()}
+                >
+                  {messages.json.copy}
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.copyBtn} ${styles.clearBtn}`}
+                  onClick={clearAll}
+                >
+                  {messages.json.clear}
+                </button>
+              </span>
+            </div>
+            {renderProcessMessage()}
+          </div>
+        ) : (
+          <>
+            <div className={styles.editor}>
+              <div className={styles.editorLabel}>{messages.json.inputLabel}</div>
+              <JsonEditor
+                value={typeInput}
+                onChange={setTypeInput}
                 placeholder={messages.json.inputPlaceholder}
                 highlightLine={inputErrorLine}
               />

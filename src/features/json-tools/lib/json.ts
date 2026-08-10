@@ -575,6 +575,46 @@ export function offsetToLineCol(text: string, offset: number): { line: number; c
   return { line, column: offset - lineStart + 1 };
 }
 
+/** 由 1 基行列反算字符偏移（与 offsetToLineCol 互逆）。 */
+export function offsetFromLineCol(text: string, line: number, column: number): number {
+  let currentLine = 1;
+  for (let i = 0; i < text.length; i += 1) {
+    if (currentLine === line) return Math.min(text.length, i + column - 1);
+    if (text[i] === '\n') currentLine += 1;
+  }
+  return text.length;
+}
+
+export interface ErrorContext {
+  /** 出错位置前的片段（不含错误字符） */
+  before: string;
+  /** 出错位置起的片段（首字符即出错字符） */
+  after: string;
+  /** 片段前是否被截断 */
+  hasBefore: boolean;
+  /** 片段后是否被截断 */
+  hasAfter: boolean;
+}
+
+/** 提取报错位置附近的文本片段，便于快速定位；无法定位时返回 null。 */
+export function errorContext(text: string, error: JsonError, radius = 16): ErrorContext | null {
+  let offset = error.offset;
+  if (offset === undefined) {
+    if (error.line === undefined || error.column === undefined) return null;
+    offset = offsetFromLineCol(text, error.line, error.column);
+  }
+  if (offset < 0 || offset > text.length) return null;
+  const clean = (part: string) => part.replace(/\r?\n/g, '↵').replace(/\t/g, ' ');
+  const before = clean(text.slice(Math.max(0, offset - radius), offset));
+  const after = clean(text.slice(offset, Math.min(text.length, offset + radius)));
+  return {
+    before,
+    after,
+    hasBefore: offset - radius > 0,
+    hasAfter: offset + radius < text.length,
+  };
+}
+
 function lineAt(text: string, offset: number): number {
   return offsetToLineCol(text, offset).line;
 }

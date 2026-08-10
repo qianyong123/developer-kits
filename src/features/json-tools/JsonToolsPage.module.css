@@ -55,7 +55,7 @@
 
 .modes {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   background: var(--bg-subtle);
   border-radius: var(--radius-sm);
@@ -137,6 +137,12 @@
   color: var(--text-faint);
 }
 
+.modeHint {
+  margin-left: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -164,6 +170,7 @@
   position: relative;
   flex: 1;
   min-height: 420px;
+  max-height: calc(100vh - 260px);
   display: flex;
   background: var(--bg-subtle);
   border: 1px solid var(--border);
@@ -207,6 +214,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  max-height: calc(100vh - 260px);
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -218,6 +226,7 @@
   flex: 1;
   margin: 0;
   overflow: auto;
+  min-height: 0;
   font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.6;
@@ -262,6 +271,11 @@
 .copyBtn:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+.clearBtn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .toast {
@@ -338,6 +352,47 @@
   word-break: break-all;
 }
 
+.errorContext {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 6px;
+  padding: 6px 8px;
+  overflow-x: auto;
+}
+
+.errorCode {
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre;
+}
+
+.errorMark {
+  background: rgba(239, 68, 68, 0.35);
+  color: var(--danger);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.errorEllipsis {
+  color: var(--text-faint);
+}
+
+.errorCaretRow {
+  line-height: 1;
+}
+
+.errorCaret {
+  display: inline-block;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .validBox {
   display: flex;
   flex-direction: column;
@@ -392,13 +447,20 @@
 
 .changeRow {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   padding: 8px 10px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
+}
+
+.changeHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
 }
 
 .changeBadge {
@@ -407,6 +469,7 @@
   border-radius: 999px;
   font-size: 12px;
   color: #fff;
+  margin-top: 1px;
 }
 
 .added {
@@ -422,16 +485,64 @@
 }
 
 .changePath {
-  flex-shrink: 0;
+  min-width: 0;
   font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
   font-size: 12px;
   color: var(--accent-strong);
+  word-break: break-all;
+  white-space: normal;
 }
 
 .changeValue {
   min-width: 0;
   color: var(--text-secondary);
   word-break: break-all;
+  line-height: 1.6;
+}
+
+.changeBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.changePair {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.changePairSide {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.changeSide {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.changeValueTree {
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+@media (max-width: 640px) {
+  .changePair {
+    flex-direction: column;
+  }
 }
 
 .diffResult {
@@ -445,6 +556,38 @@
   margin-bottom: 8px;
 }
 
+.processToolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.processToolbar .segment,
+.processToolbar .segmentActive {
+  padding: 6px 18px;
+  font-size: 14px;
+}
+
+.processToolbar .copyBtn {
+  margin-left: 0;
+  padding: 6px 18px;
+  font-size: 14px;
+}
+
+.toolbarRight {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.processColumn {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
   .columns {
     grid-template-columns: 1fr;
@@ -456,7 +599,7 @@
   }
 
   .modes {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .editorBody,
