@@ -4,7 +4,6 @@ import { DownloadIcon } from '@/shared/components/Icons';
 import HelpTip from '@/shared/components/HelpTip/HelpTip';
 import Notice from '@/shared/components/Notice/Notice';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
-import { usePersistedState } from '@/shared/hooks/usePersistedState';
 import { downloadUrl } from '@/shared/lib/download';
 import { copyText } from '@/shared/lib/clipboard';
 import { JsonView, defaultStyles } from 'react-json-view-lite';
@@ -24,27 +23,12 @@ import {
   type JsonChange,
   type JsonError,
 } from '@/features/json-tools/lib/json';
+import { useJsonToolsStore } from '@/features/json-tools/store';
 import styles from '@/features/json-tools/JsonToolsPage.module.css';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const EDITOR_PADDING_TOP = 12;
 const EDITOR_LINE_HEIGHT = 20.8; // 13px * 1.6，与 CSS 保持一致
-
-function loadDraft(key: string): string {
-  try {
-    return localStorage.getItem(key) ?? '';
-  } catch {
-    return '';
-  }
-}
-
-function saveDraft(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // 存储不可用/超限时静默
-  }
-}
 
 type JsonMode = 'format' | 'minify' | 'validate' | 'diff' | 'type';
 
@@ -142,13 +126,21 @@ const SAMPLE_AFTER = JSON.stringify(
 
 export default function JsonToolsPage() {
   const [mode, setMode] = useState<JsonMode>('format');
-  const [indent, setIndent] = usePersistedState<number>('devkits.json.indent', 2);
-  const [sortKeys, setSortKeys] = useState(false);
-  const [unwrap, setUnwrap] = useState(false);
-  const [lenient, setLenient] = useState(false);
-  const [input, setInput] = useState(() => loadDraft('devkits.json.input'));
-  const [before, setBefore] = useState(() => loadDraft('devkits.json.before'));
-  const [after, setAfter] = useState(() => loadDraft('devkits.json.after'));
+  const input = useJsonToolsStore((s) => s.input);
+  const setInput = useJsonToolsStore((s) => s.setInput);
+  const before = useJsonToolsStore((s) => s.before);
+  const setBefore = useJsonToolsStore((s) => s.setBefore);
+  const after = useJsonToolsStore((s) => s.after);
+  const setAfter = useJsonToolsStore((s) => s.setAfter);
+  const indent = useJsonToolsStore((s) => s.indent);
+  const setIndent = useJsonToolsStore((s) => s.setIndent);
+  const sortKeys = useJsonToolsStore((s) => s.sortKeys);
+  const setSortKeys = useJsonToolsStore((s) => s.setSortKeys);
+  const unwrap = useJsonToolsStore((s) => s.unwrap);
+  const setUnwrap = useJsonToolsStore((s) => s.setUnwrap);
+  const lenient = useJsonToolsStore((s) => s.lenient);
+  const setLenient = useJsonToolsStore((s) => s.setLenient);
+  const clearData = useJsonToolsStore((s) => s.clearData);
   const [output, setOutput] = useState<OutputState>({ kind: 'idle' });
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -248,11 +240,6 @@ export default function JsonToolsPage() {
     if (mode === 'diff') setOutput({ kind: 'idle' });
   }, [mode]);
 
-  // 草稿自动保存：防抖写入，刷新/误关不丢
-  useDebouncedEffect(() => saveDraft('devkits.json.input', input), [input], 500);
-  useDebouncedEffect(() => saveDraft('devkits.json.before', before), [before], 500);
-  useDebouncedEffect(() => saveDraft('devkits.json.after', after), [after], 500);
-
   const handleFile = useCallback(
     (file: File) => {
       if (file.size > MAX_FILE_SIZE) {
@@ -267,7 +254,7 @@ export default function JsonToolsPage() {
       };
       reader.readAsText(file);
     },
-    [mode],
+    [mode, setBefore, setInput],
   );
 
   const loadSample = useCallback(() => {
@@ -277,22 +264,13 @@ export default function JsonToolsPage() {
     } else {
       setInput(SAMPLE);
     }
-  }, [mode]);
+  }, [mode, setBefore, setAfter, setInput]);
 
   const clearAll = useCallback(() => {
-    setInput('');
-    setBefore('');
-    setAfter('');
+    clearData();
     setOutput({ kind: 'idle' });
     setNotice(null);
-    for (const key of ['devkits.json.input', 'devkits.json.before', 'devkits.json.after']) {
-      try {
-        localStorage.removeItem(key);
-      } catch {
-        // 忽略
-      }
-    }
-  }, []);
+  }, [clearData]);
 
   const reportText = useMemo(() => {
     switch (output.kind) {

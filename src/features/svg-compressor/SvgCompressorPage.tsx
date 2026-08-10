@@ -6,7 +6,6 @@ import Notice from '@/shared/components/Notice/Notice';
 import ProgressBar from '@/shared/components/ProgressBar/ProgressBar';
 import SummaryBar from '@/shared/components/SummaryBar/SummaryBar';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
-import { usePersistedState } from '@/shared/hooks/usePersistedState';
 import { useWorkbench } from '@/shared/hooks/useWorkbench';
 import { downloadUrl } from '@/shared/lib/download';
 import { formatBytes, ratioPercent } from '@/shared/lib/format';
@@ -16,6 +15,7 @@ import SvgCard from '@/features/svg-compressor/components/SvgCard';
 import SvgCompareDialog from '@/features/svg-compressor/components/SvgCompareDialog';
 import SvgSettingsPanel from '@/features/svg-compressor/components/SvgSettingsPanel';
 import { disposeWorkerPool, optimizeSvg } from '@/features/svg-compressor/lib/optimize';
+import { useSvgSettingsStore } from '@/features/svg-compressor/stores';
 import {
   analyzeEmbeddedImages,
   isSvgFile,
@@ -28,7 +28,6 @@ import type {
   SvgItem,
   SvgOutputFormat,
   SvgResult,
-  SvgSettings,
 } from '@/features/svg-compressor/lib/types';
 import styles from '@/features/svg-compressor/SvgCompressorPage.module.css';
 
@@ -42,11 +41,6 @@ const SVG_PICK_TYPES = [
   },
 ];
 
-const DEFAULT_SETTINGS: SvgSettings = {
-  preset: 'balanced',
-  format: 'svg',
-};
-
 const MAX_FILES_PER_BATCH = 50;
 
 let idCounter = 0;
@@ -58,10 +52,8 @@ function describeError(err: unknown): string {
 }
 
 export default function SvgCompressorPage() {
-  const [settings, setSettings] = usePersistedState<SvgSettings>(
-    'devkits.svg.settings',
-    DEFAULT_SETTINGS,
-  );
+  const settings = useSvgSettingsStore((s) => s.settings);
+  const setSettings = useSvgSettingsStore((s) => s.setSettings);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 

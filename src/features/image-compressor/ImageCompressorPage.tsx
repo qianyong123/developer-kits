@@ -6,7 +6,6 @@ import Notice from '@/shared/components/Notice/Notice';
 import ProgressBar from '@/shared/components/ProgressBar/ProgressBar';
 import SummaryBar from '@/shared/components/SummaryBar/SummaryBar';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
-import { usePersistedState } from '@/shared/hooks/usePersistedState';
 import { useWorkbench } from '@/shared/hooks/useWorkbench';
 import { downloadUrl } from '@/shared/lib/download';
 import { formatBytes, ratioPercent } from '@/shared/lib/format';
@@ -17,12 +16,16 @@ import SettingsPanel from '@/features/image-compressor/components/SettingsPanel'
 import { compressImage } from '@/features/image-compressor/lib/compress';
 import { outputFileName } from '@/features/image-compressor/lib/filenames';
 import {
+  DEFAULT_IMAGE_SETTINGS,
+  useImageSettingsStore,
+} from '@/features/image-compressor/stores';
+import {
   MAX_FILE_SIZE,
   MAX_IMAGE_PIXELS,
   MAX_IMAGE_SIDE,
   readImageDimensions,
 } from '@/features/image-compressor/lib/imageInfo';
-import type { CompressSettings, ImageItem } from '@/features/image-compressor/lib/types';
+import type { ImageItem } from '@/features/image-compressor/lib/types';
 import { buildZipBlob } from '@/features/image-compressor/lib/zip';
 import styles from '@/features/image-compressor/ImageCompressorPage.module.css';
 
@@ -71,14 +74,6 @@ function formatLabel(file: File): string {
   return ext && ext.length <= 5 ? ext : '该图片';
 }
 
-const DEFAULT_SETTINGS: CompressSettings = {
-  quality: 80,
-  compressRatio: 100,
-  format: 'original',
-  keepMetadata: false,
-  maxEdge: 4096,
-};
-
 function describeError(err: unknown): string {
   const msg = err instanceof Error ? err.message : '';
   if (msg === 'no-webp') return messages.image.errorNoWebp;
@@ -86,10 +81,8 @@ function describeError(err: unknown): string {
 }
 
 export default function ImageCompressorPage() {
-  const [settings, setSettings] = usePersistedState<CompressSettings>(
-    'devkits.image.settings',
-    DEFAULT_SETTINGS,
-  );
+  const settings = useImageSettingsStore((s) => s.settings);
+  const setSettings = useImageSettingsStore((s) => s.setSettings);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
@@ -352,7 +345,7 @@ export default function ImageCompressorPage() {
           <SettingsPanel
             settings={settings}
             onChange={setSettings}
-            onReset={() => setSettings(DEFAULT_SETTINGS)}
+  onReset={() => setSettings(DEFAULT_IMAGE_SETTINGS)}
             totals={{
               count: doneItems.length,
               original: totalOriginal,

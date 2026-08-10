@@ -39,6 +39,7 @@ export interface WorkbenchOptions<T extends WorkbenchItem> {
  * 处理工作台：统一管理文件列表（增删/清空/上限/提示）、
  * 压缩流水线（并发/进度/取消/设置变更重跑）与自动压缩调度。
  * 图片压缩与 SVG 压缩两个页面共用，新增队列型工具可直接复用。
+ * 列表为页面级状态：切走工具即清空；设置等公共数据走 zustand store。
  */
 export function useWorkbench<T extends WorkbenchItem>(options: WorkbenchOptions<T>) {
   const {
