@@ -12,11 +12,10 @@ import {
   diffJson,
   errorContext,
   formatDiffReport,
-  formatJson,
   jsonToTsTypes,
-  minifyJson,
   parseJson,
   shortValue,
+  sortObjectKeys,
   unwrapJsonString,
   validateJson,
   type BigNumberInfo,
@@ -216,16 +215,31 @@ export default function JsonToolsPage() {
       return;
     }
 
-    const result =
-      act === 'format'
-        ? formatJson(input, { indent, sortKeys, unwrapString: unwrap, lenient })
-        : minifyJson(input, { unwrapString: unwrap, lenient });
-    if (!result.ok) {
-      setOutput({ kind: 'error', error: result.error });
+    const parsed = parseJson(input, { lenient });
+    if (!parsed.ok) {
+      setOutput({ kind: 'error', error: parsed.error });
       return;
     }
+    // 字符串里套着 JSON（如日志里带引号的 JSON）：格式化/压缩时自动解包，
+    // 无需手动开启“自动解包”，避免“点了没反应”
+    let value = parsed.value;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        const inner = parseJson(trimmed, { lenient });
+        if (!inner.ok) {
+          setOutput({ kind: 'error', error: inner.error });
+          return;
+        }
+        value = inner.value;
+      }
+    }
+    const text =
+      act === 'format'
+        ? JSON.stringify(sortKeys ? sortObjectKeys(value) : value, null, indent)
+        : JSON.stringify(value);
     // 格式化/压缩：结果直接写回输入框
-    setInput(result.text);
+    setInput(text);
     setOutput({ kind: 'idle' });
   }, [input, indent, sortKeys, unwrap, lenient, setInput]);
 
