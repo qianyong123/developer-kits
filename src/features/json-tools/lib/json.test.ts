@@ -104,16 +104,30 @@ describe('diffJson', () => {
     expect(changes).toEqual([{ path: '$[2]', type: 'added', after: 3 }]);
   });
 
-  it('数组中间插入不误报为后续变更', () => {
+  it('数组按同一下标对比：中间插入显示为修改+新增', () => {
     const changes = diffJson([1, 3], [1, 2, 3]);
-    expect(changes).toEqual([{ path: '$[1]', type: 'added', after: 2 }]);
+    expect(changes).toEqual([
+      { path: '$[1]', type: 'changed', before: 3, after: 2 },
+      { path: '$[2]', type: 'added', after: 3 },
+    ]);
   });
 
-  it('数组元素重排显示为删除+新增', () => {
+  it('数组等长时按索引对比，重排显示为修改', () => {
     const changes = diffJson([1, 2, 3], [1, 3, 2]);
-    expect(changes).toContainEqual({ path: '$[1]', type: 'removed', before: 2 });
-    expect(changes).toContainEqual({ path: '$[2]', type: 'added', after: 2 });
-    expect(changes.some((c) => c.type === 'changed')).toBe(false);
+    expect(changes).toEqual([
+      { path: '$[1]', type: 'changed', before: 2, after: 3 },
+      { path: '$[2]', type: 'changed', before: 3, after: 2 },
+    ]);
+  });
+
+  it('数组等长时对象元素按字段对比', () => {
+    const changes = diffJson(
+      [{ name: '张三', active: true }],
+      [{ name: '张三', active: false }],
+    );
+    expect(changes).toEqual([
+      { path: '$[0].active', type: 'changed', before: true, after: false },
+    ]);
   });
 
   it('嵌套路径与特殊键名', () => {
@@ -126,6 +140,25 @@ describe('diffJson', () => {
   it('类型变化记为修改', () => {
     const changes = diffJson({ a: '1' }, { a: 1 });
     expect(changes).toEqual([{ path: '$.a', type: 'changed', before: '1', after: 1 }]);
+  });
+
+  it('对象与数组类型变化记为修改', () => {
+    const changes = diffJson({ a: [1] }, { a: { x: 1 } });
+    expect(changes).toEqual([
+      { path: '$.a', type: 'changed', before: [1], after: { x: 1 } },
+    ]);
+  });
+
+  it('数组元素对象与标量类型变化记为修改', () => {
+    const changes = diffJson([{ a: 1 }], ['str']);
+    expect(changes).toEqual([
+      { path: '$[0]', type: 'changed', before: { a: 1 }, after: 'str' },
+    ]);
+  });
+
+  it('数组元素数组与对象类型变化记为修改', () => {
+    const changes = diffJson([[]], [{}]);
+    expect(changes).toEqual([{ path: '$[0]', type: 'changed', before: [], after: {} }]);
   });
 });
 
@@ -240,6 +273,6 @@ describe('工具函数', () => {
       { path: '$.a', type: 'changed', before: 1, after: 2 },
       { path: '$.b', type: 'added', after: { x: 1 } },
     ]);
-    expect(report).toBe('$.a: 1 → 2\n$.b: + {"x":1}');
+    expect(report).toBe('~ a: 1 → 2\n+ b: {"x":1}');
   });
 });

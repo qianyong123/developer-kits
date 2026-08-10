@@ -487,8 +487,8 @@ function walk(before: unknown, after: unknown, path: string, changes: JsonChange
 }
 
 /**
- * 数组 LCS diff：按最长公共子序列对齐元素（deepEqual 判等），
- * 只输出真正的删除/新增，避免“中间插入一个元素导致后面全部变更”。
+ * 数组 diff：始终按同一下标对齐比较——
+ * 相同下标都存在的元素递归对比（对象按字段），只多出/缺少的一侧记为新增/删除。
  */
 function arrayDiff(
   before: unknown[],
@@ -498,36 +498,15 @@ function arrayDiff(
 ): void {
   const n = before.length;
   const m = after.length;
-  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i -= 1) {
-    for (let j = m - 1; j >= 0; j -= 1) {
-      dp[i][j] = deepEqual(before[i], after[j])
-        ? dp[i + 1][j + 1] + 1
-        : Math.max(dp[i + 1][j], dp[i][j + 1]);
-    }
-  }
-
-  let i = 0;
-  let j = 0;
-  while (i < n && j < m) {
-    if (deepEqual(before[i], after[j])) {
-      i += 1;
-      j += 1;
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-      changes.push({ path: `${path}[${i}]`, type: 'removed', before: before[i] });
-      i += 1;
+  for (let i = 0; i < Math.max(n, m); i += 1) {
+    const pathAtIndex = `${path}[${i}]`;
+    if (i >= n) {
+      changes.push({ path: pathAtIndex, type: 'added', after: after[i] });
+    } else if (i >= m) {
+      changes.push({ path: pathAtIndex, type: 'removed', before: before[i] });
     } else {
-      changes.push({ path: `${path}[${j}]`, type: 'added', after: after[j] });
-      j += 1;
+      walk(before[i], after[i], `${path}[${i}]`, changes);
     }
-  }
-  while (i < n) {
-    changes.push({ path: `${path}[${i}]`, type: 'removed', before: before[i] });
-    i += 1;
-  }
-  while (j < m) {
-    changes.push({ path: `${path}[${j}]`, type: 'added', after: after[j] });
-    j += 1;
   }
 }
 
@@ -639,11 +618,14 @@ export function shortValue(value: unknown, maxLength = 80): string {
 export function formatDiffReport(changes: JsonChange[]): string {
   return changes
     .map((change) => {
-      const before = change.before === undefined ? 'undefined' : shortValue(change.before, 200);
-      const after = change.after === undefined ? 'undefined' : shortValue(change.after, 200);
-      if (change.type === 'added') return `${change.path}: + ${after}`;
-      if (change.type === 'removed') return `${change.path}: - ${before}`;
-      return `${change.path}: ${before} → ${after}`;
+      const path = change.path.replace(/^\$\.?/, '');
+      // 报告/复制输出完整值，不做截断，避免复制后内容缺失
+      const before =
+        change.before === undefined ? 'undefined' : JSON.stringify(change.before);
+      const after = change.after === undefined ? 'undefined' : JSON.stringify(change.after);
+      if (change.type === 'added') return `+ ${path}: ${after}`;
+      if (change.type === 'removed') return `- ${path}: ${before}`;
+      return `~ ${path}: ${before} → ${after}`;
     })
     .join('\n');
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { messages } from '@/shared/i18n/zh';
+import { BackToTop } from '@/shared/components/BackToTop/BackToTop';
 import { BrandIcon, MenuIcon } from '@/shared/components/Icons';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { tools } from '@/app/tools';
@@ -74,6 +75,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </header>
         <main className={styles.main}>{children}</main>
       </div>
+
+      <BackToTop />
     </div>
   );
 }

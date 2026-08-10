@@ -5,8 +5,10 @@ import { getSearchQuery, searchPanelOpen } from '@codemirror/search';
 import { Decoration, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { messages } from '@/shared/i18n/zh';
 import { DownloadIcon } from '@/shared/components/Icons';
+import { Button } from '@/shared/components/Button/Button';
 import HelpTip from '@/shared/components/HelpTip/HelpTip';
 import Notice from '@/shared/components/Notice/Notice';
+import { Tag } from '@/shared/components/Tag/Tag';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { downloadUrl } from '@/shared/lib/download';
@@ -34,6 +36,17 @@ import styles from '@/features/json-tools/JsonToolsPage.module.css';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const EDITOR_PADDING_TOP = 12;
 const EDITOR_LINE_HEIGHT = 20.8; // 13px * 1.6，与 CSS 保持一致
+/** 超过该长度的字符串值用高亮框完整展示（不再截断） */
+const LONG_STRING_LENGTH = 80;
+
+const CHANGE_TONE_CLASS = {
+  added: styles.toneAdded,
+  removed: styles.toneRemoved,
+  old: styles.toneOld,
+  new: styles.toneNew,
+} as const;
+
+type ChangeTone = keyof typeof CHANGE_TONE_CLASS;
 
 type JsonMode = 'process' | 'diff' | 'type';
 type ProcessAction = 'format' | 'minify' | 'validate';
@@ -114,10 +127,19 @@ const SAMPLE = JSON.stringify(
 
 const SAMPLE_BEFORE = JSON.stringify(
   {
-    name: '开发工具包',
+    project: '开发工具包',
     version: '0.1.0',
-    tools: ['图片压缩', 'SVG 压缩'],
-    stats: { downloads: 1000, rating: 4.5, active: true },
+    members: [
+      { name: '张三', role: '前端', active: true },
+      { name: '李四', role: '后端', active: true },
+      { name: '陈七', role: '运维', active: true },
+    ],
+    config: {
+      theme: 'light',
+      lang: 'zh-CN',
+      limits: { maxFiles: 50, maxSize: 5 },
+      legacy: true,
+    },
   },
   null,
   2,
@@ -125,23 +147,39 @@ const SAMPLE_BEFORE = JSON.stringify(
 
 const SAMPLE_AFTER = JSON.stringify(
   {
-    name: '开发工具包',
+    project: '开发工具包',
     version: '0.2.0',
-    tools: ['图片压缩', 'SVG 压缩', 'JSON 工具'],
-    stats: { downloads: 1234, rating: 4.8, active: false },
-    config: { theme: 'light' },
+    members: [
+      { name: '张三', role: '前端', active: true },
+      { name: '李四', role: '后端', active: true },
+      { name: '王五', role: '测试', active: true },
+      { name: '王五444', role: '测试', active: true },
+    ],
+    config: {
+      theme: 'dark',
+      lang: 'zh-CN',
+      limits: { maxFiles: 100, maxSize: 10, maxUploads: 20 },
+    },
   },
   null,
   2,
 );
 
 /** 对比结果中的单个变更值：复杂值用可折叠 JSON 树，简单值直接展示。 */
-function ChangeValue({ value }: { value: unknown }) {
+function ChangeValue({ value, tone }: { value: unknown; tone?: ChangeTone }) {
+  const toneClass = tone ? CHANGE_TONE_CLASS[tone] : '';
+  if (isLongString(value)) {
+    return <div className={`${styles.longString} ${toneClass}`}>{value}</div>;
+  }
   if (isPrimitive(value)) {
-    return <span className={styles.changeValue}>{shortValue(value, 160)}</span>;
+    return (
+      <span className={`${styles.changeValue} ${toneClass}`}>
+        {shortValue(value, 160)}
+      </span>
+    );
   }
   return (
-    <div className={styles.changeValueTree}>
+    <div className={`${styles.changeValueTree} ${toneClass}`}>
       <JsonView
         data={value as object}
         style={defaultStyles}
@@ -153,6 +191,26 @@ function ChangeValue({ value }: { value: unknown }) {
 
 function isPrimitive(value: unknown): boolean {
   return value === null || typeof value !== 'object';
+}
+
+function isLongString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > LONG_STRING_LENGTH;
+}
+
+/** 规范化 JSON 值：字符串里套着 JSON 时自动解包（尊重“自动解包”语义）。 */
+function normalizeJsonForOutput(
+  value: unknown,
+  lenient: boolean,
+): { ok: true; value: unknown } | { ok: false; error: JsonError } {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      const inner = parseJson(trimmed, { lenient });
+      if (!inner.ok) return inner;
+      return { ok: true, value: inner.value };
+    }
+  }
+  return { ok: true, value };
 }
 
 /** 搜索面板打开时，在编辑器右上角显示匹配数量。 */
@@ -217,6 +275,7 @@ export default function JsonToolsPage() {
   const [output, setOutput] = useState<OutputState>({ kind: 'idle' });
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const runDiff = useCallback(() => {
@@ -234,10 +293,61 @@ export default function JsonToolsPage() {
       setOutput({ kind: 'error', error: parsedAfter.error, side: 'after' });
       return;
     }
-    const beforeValue = unwrap ? unwrapJsonString(parsedBefore.value, lenient) : parsedBefore.value;
-    const afterValue = unwrap ? unwrapJsonString(parsedAfter.value, lenient) : parsedAfter.value;
-    setOutput({ kind: 'diff', changes: diffJson(beforeValue, afterValue) });
-  }, [before, after, unwrap, lenient]);
+    const beforeNormalized = normalizeJsonForOutput(parsedBefore.value, lenient);
+    if (!beforeNormalized.ok) {
+      setOutput({ kind: 'error', error: beforeNormalized.error, side: 'before' });
+      return;
+    }
+    const afterNormalized = normalizeJsonForOutput(parsedAfter.value, lenient);
+    if (!afterNormalized.ok) {
+      setOutput({ kind: 'error', error: afterNormalized.error, side: 'after' });
+      return;
+    }
+    // 两边都合法：先转成标准 JSON 格式写回编辑器，再执行对比
+    setBefore(JSON.stringify(beforeNormalized.value, null, 2));
+    setAfter(JSON.stringify(afterNormalized.value, null, 2));
+    const changes = diffJson(beforeNormalized.value, afterNormalized.value);
+    setOutput({ kind: 'diff', changes });
+    // 对比后默认全部选中
+    setSelected(new Set(changes.map((_, i) => i)));
+  }, [before, after, lenient, setBefore, setAfter]);
+
+  const swapSides = useCallback(() => {
+    setBefore(after);
+    setAfter(before);
+    setOutput({ kind: 'idle' });
+    setSelected(new Set());
+  }, [before, after, setBefore, setAfter]);
+
+  const toggleSelect = useCallback((index: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelected(new Set()), []);
+
+  const selectAll = useCallback(() => {
+    if (output.kind !== 'diff') return;
+    setSelected(new Set(output.changes.map((_, i) => i)));
+  }, [output]);
+
+  const copyDiffResult = useCallback(async () => {
+    if (output.kind !== 'diff' || output.changes.length === 0) return;
+    const indexes = output.changes.map((_, i) => i);
+    const targets =
+      selected.size > 0 ? indexes.filter((i) => selected.has(i)) : indexes;
+    const text = formatDiffReport(targets.map((i) => output.changes[i]));
+    if (await copyText(text)) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } else {
+      setNotice(messages.json.copyFailed);
+    }
+  }, [output, selected]);
 
   const runAction = useCallback((act: ProcessAction) => {
     if (input.trim() === '') {
@@ -266,18 +376,12 @@ export default function JsonToolsPage() {
     }
     // 字符串里套着 JSON（如日志里带引号的 JSON）：格式化/压缩时自动解包，
     // 无需手动开启“自动解包”，避免“点了没反应”
-    let value = parsed.value;
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        const inner = parseJson(trimmed, { lenient });
-        if (!inner.ok) {
-          setOutput({ kind: 'error', error: inner.error });
-          return;
-        }
-        value = inner.value;
-      }
+    const normalized = normalizeJsonForOutput(parsed.value, lenient);
+    if (!normalized.ok) {
+      setOutput({ kind: 'error', error: normalized.error });
+      return;
     }
+    const value = normalized.value;
     const text =
       act === 'format'
         ? JSON.stringify(sortKeys ? sortObjectKeys(value) : value, null, indent)
@@ -527,31 +631,90 @@ export default function JsonToolsPage() {
               <pre className={styles.outputText}>{output.text}</pre>
             )}
             <div className={styles.outputMeta}>
-              {messages.json.sizeLabel}: {output.text.length} B · {messages.json.linesLabel}:{' '}
-              {output.text.split('\n').length}
+              <span>
+                {messages.json.sizeLabel}: {output.text.length} B · {messages.json.linesLabel}:{' '}
+                {output.text.split('\n').length}
+              </span>
+              {mode === 'type' && (
+                <Button variant="primary" size="sm" onClick={() => void copyOutput()}>
+                  {messages.json.copy}
+                </Button>
+              )}
             </div>
           </>
         );
       case 'valid':
         return validView(output);
-      case 'diff':
+      case 'diff': {
+        const added = output.changes.filter((c) => c.type === 'added').length;
+        const removed = output.changes.filter((c) => c.type === 'removed').length;
+        const changed = output.changes.filter((c) => c.type === 'changed').length;
         return (
           <div className={styles.diffBox}>
             {output.changes.length === 0 ? (
               <div className={styles.diffNone}>{messages.json.diffNone}</div>
             ) : (
               <>
-                <div className={styles.diffSummary}>
-                  {messages.json.diffSummary(
-                    output.changes.filter((c) => c.type === 'added').length,
-                    output.changes.filter((c) => c.type === 'removed').length,
-                    output.changes.filter((c) => c.type === 'changed').length,
-                  )}
+                <div className={styles.diffHeader}>
+                  <strong className={styles.diffTitle}>{messages.json.diffResultTitle}</strong>
+                  <span className={styles.diffStats}>
+                    {messages.json.diffFound(output.changes.length)} ·{' '}
+                    <Tag variant="success">
+                      +{added} {messages.json.changeAdded}
+                    </Tag>{' '}
+                    ·{' '}
+                    <Tag variant="danger">
+                      -{removed} {messages.json.changeRemoved}
+                    </Tag>{' '}
+                    ·{' '}
+                    <Tag variant="warning">
+                      ~{changed} {messages.json.changeChanged}
+                    </Tag>{' '}
+                    ·{' '}
+                    <span className={styles.diffSelectedCount}>
+                      {messages.json.diffSelected(selected.size)}
+                    </span>
+                  </span>
+                  <span className={styles.toolbarRight}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={
+                        output.changes.length > 0 && selected.size === output.changes.length
+                          ? clearSelection
+                          : selectAll
+                      }
+                    >
+                      {output.changes.length > 0 && selected.size === output.changes.length
+                        ? messages.json.clearSelection
+                        : messages.json.selectAll}
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => void copyDiffResult()}
+                    >
+                      {messages.json.copyResult}
+                    </Button>
+                  </span>
                 </div>
                 <div className={styles.changeList}>
                   {output.changes.map((change, i) => (
-                    <div key={i} className={styles.changeRow}>
+                    <div
+                      key={i}
+                      className={`${styles.changeRow} ${
+                        selected.has(i) ? styles.changeRowSelected : ''
+                      }`}
+                      onClick={() => toggleSelect(i)}
+                    >
                       <div className={styles.changeHeader}>
+                        <input
+                          type="checkbox"
+                          className={styles.changeCheckbox}
+                          checked={selected.has(i)}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => toggleSelect(i)}
+                        />
                         <span className={`${styles.changeBadge} ${styles[change.type]}`}>
                           {change.type === 'added'
                             ? messages.json.changeAdded
@@ -559,29 +722,51 @@ export default function JsonToolsPage() {
                               ? messages.json.changeRemoved
                               : messages.json.changeChanged}
                         </span>
-                        <code className={styles.changePath}>{change.path}</code>
+                        <code className={styles.changePath}>
+                          {change.path.replace(/^\$\.?/, '')}
+                        </code>
                       </div>
-                      <div className={styles.changeBody}>
-                        {change.type === 'added' && <ChangeValue value={change.after} />}
-                        {change.type === 'removed' && <ChangeValue value={change.before} />}
+                      <div
+                        className={styles.changeBody}
+                        onClick={(e) => {
+                          // 只有点击树形折叠图标时不选中行；值区域其他位置仍可选中
+                          const target = e.target as HTMLElement;
+                          if (target.closest('[role="button"]')) e.stopPropagation();
+                        }}
+                      >
+                        {change.type === 'added' && (
+                          <ChangeValue value={change.after} tone="added" />
+                        )}
+                        {change.type === 'removed' && (
+                          <ChangeValue value={change.before} tone="removed" />
+                        )}
                         {change.type === 'changed' &&
-                          (isPrimitive(change.before) && isPrimitive(change.after) ? (
+                          (!isLongString(change.before) &&
+                          !isLongString(change.after) &&
+                          isPrimitive(change.before) &&
+                          isPrimitive(change.after) ? (
                             <span className={styles.changeValue}>
-                              {shortValue(change.before, 120)} → {shortValue(change.after, 120)}
+                              <span className={styles.toneOld}>
+                                {shortValue(change.before, 120)}
+                              </span>{' '}
+                              →{' '}
+                              <span className={styles.toneNew}>
+                                {shortValue(change.after, 120)}
+                              </span>
                             </span>
                           ) : (
                             <div className={styles.changePair}>
                               <div className={styles.changePairSide}>
                                 <span className={styles.changeSide}>
-                                  {messages.json.beforeLabel}
+                                  {messages.json.diffOld}
                                 </span>
-                                <ChangeValue value={change.before} />
+                                <ChangeValue value={change.before} tone="old" />
                               </div>
                               <div className={styles.changePairSide}>
                                 <span className={styles.changeSide}>
-                                  {messages.json.afterLabel}
+                                  {messages.json.diffNew}
                                 </span>
-                                <ChangeValue value={change.after} />
+                                <ChangeValue value={change.after} tone="new" />
                               </div>
                             </div>
                           ))}
@@ -593,6 +778,7 @@ export default function JsonToolsPage() {
             )}
           </div>
         );
+      }
     }
   };
 
@@ -630,19 +816,19 @@ export default function JsonToolsPage() {
             <p className={styles.subtitle}>{messages.json.subtitle}</p>
           </div>
           <div className={styles.toolbar}>
-            <button className="btn" onClick={() => fileInputRef.current?.click()}>
+            <Button onClick={() => fileInputRef.current?.click()}>
               {messages.json.importFile}
-            </button>
-            <button className="btn" onClick={loadSample}>
+            </Button>
+            <Button onClick={loadSample}>
               {messages.json.loadSample}
-            </button>
-            <button className="btn" disabled={!downloadText} onClick={downloadOutput}>
+            </Button>
+            <Button disabled={!downloadText} onClick={downloadOutput}>
               <DownloadIcon size={14} />
               {messages.json.download}
-            </button>
-            <button className="btn btn-ghost-danger" onClick={clearAll}>
+            </Button>
+            <Button variant="danger" onClick={clearAll}>
               {messages.json.clear}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -734,9 +920,12 @@ export default function JsonToolsPage() {
             </div>
             <div className={styles.diffResult}>
               <div className={styles.diffToolbar}>
-                <button type="button" className="btn btn-primary" onClick={() => void runDiff()}>
+                <Button variant="primary" onClick={() => void runDiff()}>
                   {messages.json.startCompare}
-                </button>
+                </Button>
+                <Button onClick={swapSides}>
+                  {messages.json.swapSides}
+                </Button>
               </div>
               {renderOutput()}
             </div>
@@ -772,21 +961,14 @@ export default function JsonToolsPage() {
               ))}
               <span className={styles.cmHint}>{messages.json.cmSearchHint}</span>
               <span className={styles.toolbarRight}>
-                <button
-                  type="button"
-                  className={styles.copyBtn}
+                <Button
+                  variant="primary"
+                  size="sm"
                   disabled={!input}
                   onClick={() => void copyInput()}
                 >
                   {messages.json.copy}
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.copyBtn} ${styles.clearBtn}`}
-                  onClick={clearAll}
-                >
-                  {messages.json.clear}
-                </button>
+                </Button>
               </span>
             </div>
             {renderProcessMessage()}
@@ -805,15 +987,6 @@ export default function JsonToolsPage() {
             <div className={styles.editor}>
               <div className={styles.editorLabel}>
                 {messages.json.outputLabel}
-                {reportText && (
-                  <button
-                    type="button"
-                    className={styles.copyBtn}
-                    onClick={() => void copyOutput()}
-                  >
-                    {messages.json.copy}
-                  </button>
-                )}
               </div>
               <div className={styles.output}>
                 {renderOutput()}

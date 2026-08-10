@@ -134,6 +134,15 @@ export function ChevronDownIcon(props: IconProps) {
   );
 }
 
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 19V5" />
+      <path d="M6 11l6-6 6 6" />
+    </svg>
+  );
+}
+
 export function CompareIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

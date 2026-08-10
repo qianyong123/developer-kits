@@ -48,6 +48,15 @@ export const jsonMessages = {
     `检测到 ${count} 个超出安全整数范围（2^53）的大数，输出可能丢失精度`,
   diffSummary: (added: number, removed: number, changed: number) =>
     `新增 ${added} · 删除 ${removed} · 修改 ${changed}`,
+  diffResultTitle: '比较结果',
+  diffFound: (count: number) => `发现 ${count} 处差异`,
+  diffSelected: (count: number) => `${count} 已选择`,
+  clearSelection: '取消全选',
+  selectAll: '全选',
+  copyResult: '复制结果',
+  swapSides: '交换',
+  diffOld: '原始值',
+  diffNew: '新值',
   diffNone: '两个 JSON 完全一致',
   changeAdded: '新增',
   changeRemoved: '删除',
@@ -60,6 +69,6 @@ export const jsonMessages = {
     minify: 'minified.json',
     validate: 'json-report.txt',
     diff: 'json-diff.txt',
-    type: 'types.ts',
+    type: 'types.txt',
   },
 } as const;
