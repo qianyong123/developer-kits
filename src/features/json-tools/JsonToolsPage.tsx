@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { json } from '@codemirror/lang-json';
+import { getSearchQuery, searchPanelOpen } from '@codemirror/search';
+import { Decoration, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { messages } from '@/shared/i18n/zh';
 import { DownloadIcon } from '@/shared/components/Icons';
 import HelpTip from '@/shared/components/HelpTip/HelpTip';
 import Notice from '@/shared/components/Notice/Notice';
 import { useDebouncedEffect } from '@/shared/hooks/useDebounced';
+import { useTheme } from '@/shared/hooks/useTheme';
 import { downloadUrl } from '@/shared/lib/download';
 import { copyText } from '@/shared/lib/clipboard';
 import { JsonView, defaultStyles } from 'react-json-view-lite';
@@ -150,9 +155,48 @@ function isPrimitive(value: unknown): boolean {
   return value === null || typeof value !== 'object';
 }
 
+/** 搜索面板打开时，在编辑器右上角显示匹配数量。 */
+function createSearchCountExtension(countClass: string) {
+  return ViewPlugin.fromClass(
+    class {
+      el: HTMLElement;
+
+      constructor(view: EditorView) {
+        this.el = document.createElement('div');
+        this.el.className = countClass;
+        view.dom.appendChild(this.el);
+        this.render(view);
+      }
+
+      update(update: ViewUpdate) {
+        this.render(update.view);
+      }
+
+      render(view: EditorView) {
+        const panelOpen = searchPanelOpen(view.state);
+        const query = getSearchQuery(view.state);
+        if (!panelOpen || !query || query.search.trim() === '') {
+          this.el.style.display = 'none';
+          return;
+        }
+        let count = 0;
+        const cursor = query.getCursor(view.state.doc);
+        while (!cursor.next().done) count += 1;
+        this.el.textContent = `匹配 ${count} 个`;
+        this.el.style.display = 'block';
+      }
+
+      destroy() {
+        this.el.remove();
+      }
+    },
+  );
+}
+
 export default function JsonToolsPage() {
   const [mode, setMode] = useState<JsonMode>('process');
   const [action, setAction] = useState<ProcessAction>('format');
+  const { theme } = useTheme();
   const input = useJsonToolsStore((s) => s.input);
   const setInput = useJsonToolsStore((s) => s.setInput);
   const typeInput = useJsonToolsStore((s) => s.typeInput);
@@ -554,6 +598,24 @@ export default function JsonToolsPage() {
 
   const inputErrorLine =
     output.kind === 'error' && !output.side ? output.error.line ?? null : null;
+  // CodeMirror 错误行高亮（根据报错行号定位）
+  const errorLineExtension = useMemo(() => {
+    if (inputErrorLine == null) return [];
+    const deco = Decoration.line({ class: styles.cmErrorLine });
+    return EditorView.decorations.of((view) => {
+      if (inputErrorLine < 1 || inputErrorLine > view.state.doc.lines) return Decoration.none;
+      const line = view.state.doc.line(inputErrorLine);
+      return Decoration.set([deco.range(line.from)]);
+    });
+  }, [inputErrorLine]);
+  const searchCountExtension = useMemo(
+    () => createSearchCountExtension(styles.cmSearchCount),
+    [],
+  );
+  const cmExtensions = useMemo(
+    () => [json(), errorLineExtension, searchCountExtension],
+    [errorLineExtension, searchCountExtension],
+  );
   const beforeErrorLine =
     output.kind === 'error' && output.side === 'before' ? output.error.line ?? null : null;
   const afterErrorLine =
@@ -683,12 +745,16 @@ export default function JsonToolsPage() {
           <div className={styles.processColumn}>
             <div className={styles.editor}>
               <div className={styles.editorLabel}>{messages.json.inputLabel}</div>
-              <JsonEditor
-                value={input}
-                onChange={setInput}
-                placeholder={messages.json.inputPlaceholder}
-                highlightLine={inputErrorLine}
-              />
+              <div className={styles.cmBox}>
+                <CodeMirror
+                  value={input}
+                  onChange={setInput}
+                  height="100%"
+                  theme={theme === 'dark' ? 'dark' : 'light'}
+                  extensions={cmExtensions}
+                  placeholder={messages.json.inputPlaceholder}
+                />
+              </div>
             </div>
             <div className={styles.processToolbar}>
               {PROCESS_ACTIONS.map((act) => (
@@ -704,6 +770,7 @@ export default function JsonToolsPage() {
                   {PROCESS_ACTION_LABELS[act]}
                 </button>
               ))}
+              <span className={styles.cmHint}>{messages.json.cmSearchHint}</span>
               <span className={styles.toolbarRight}>
                 <button
                   type="button"

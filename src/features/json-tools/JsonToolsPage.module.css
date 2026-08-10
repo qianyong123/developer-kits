@@ -562,6 +562,12 @@
   align-items: center;
 }
 
+.cmHint {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
 .processToolbar .segment,
 .processToolbar .segmentActive {
   padding: 6px 18px;
@@ -586,6 +592,54 @@
   flex-direction: column;
   gap: 10px;
   min-width: 0;
+}
+
+.cmBox {
+  height: calc(100vh - 340px);
+  min-height: 400px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-subtle);
+}
+
+.cmBox :global(.cm-theme-light),
+.cmBox :global(.cm-theme-dark) {
+  height: 100%;
+}
+
+.cmBox :global(.cm-editor) {
+  position: relative;
+  height: 100%;
+  font-size: 13px;
+}
+
+.cmBox :global(.cm-editor.cm-focused) {
+  outline: none;
+}
+
+.cmBox :global(.cm-scroller) {
+  height: 100%;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
+  line-height: 1.6;
+}
+
+.cmErrorLine {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.cmSearchCount {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  z-index: 20;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.72);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
 }
 
 @media (max-width: 900px) {
