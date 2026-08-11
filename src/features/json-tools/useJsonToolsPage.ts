@@ -47,6 +47,8 @@ export function useJsonToolsPage() {
   const clearData = useJsonToolsStore((s) => s.clearData);
   const [output, setOutput] = useState<OutputState>({ kind: 'idle' });
   const [notice, setNotice] = useState<string | null>(null);
+  /** 未选中差异项的提示弹框：null 关闭，字符串为提示文案 */
+  const [hintDialog, setHintDialog] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,19 +110,26 @@ export function useJsonToolsPage() {
     setSelected(new Set(output.changes.map((_, i) => i)));
   }, [output]);
 
+  /** 对比模式：仅输出选中的差异项报告（复制/下载共用），未选中时为空。 */
+  const diffSelectedReport = useMemo(() => {
+    if (output.kind !== 'diff') return '';
+    return formatDiffReport(output.changes.filter((_, i) => selected.has(i)));
+  }, [output, selected]);
+
   const copyDiffResult = useCallback(async () => {
     if (output.kind !== 'diff' || output.changes.length === 0) return;
-    const indexes = output.changes.map((_, i) => i);
-    const targets =
-      selected.size > 0 ? indexes.filter((i) => selected.has(i)) : indexes;
-    const text = formatDiffReport(targets.map((i) => output.changes[i]));
-    if (await copyText(text)) {
+    // 复制前校验是否选中差异项，未选中时弹框提示，不复制
+    if (selected.size === 0) {
+      setHintDialog(messages.json.noSelectionCopy);
+      return;
+    }
+    if (await copyText(diffSelectedReport)) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } else {
       setNotice(messages.json.copyFailed);
     }
-  }, [output, selected]);
+  }, [output, selected, diffSelectedReport]);
 
   const runAction = useCallback(
     (act: ProcessAction) => {
@@ -292,7 +301,14 @@ export function useJsonToolsPage() {
 
   const downloadOutput = useCallback(() => {
     if (!downloadText) return;
-    const blob = new Blob([downloadText], {
+    // 对比模式：下载前校验是否选中差异项，未选中时弹框提示，不下载
+    if (mode === 'diff' && selected.size === 0) {
+      setHintDialog(messages.json.noSelectionDownload);
+      return;
+    }
+    // 对比模式只下载选中的差异项；其余模式按原下载内容
+    const content = mode === 'diff' ? diffSelectedReport : downloadText;
+    const blob = new Blob([content], {
       type:
         mode === 'diff' ||
         mode === 'type' ||
@@ -307,7 +323,7 @@ export function useJsonToolsPage() {
         : messages.json.downloadName[mode];
     downloadUrl(url, fileName);
     setTimeout(() => URL.revokeObjectURL(url), 30_000);
-  }, [downloadText, mode, action]);
+  }, [downloadText, diffSelectedReport, mode, action, selected]);
 
   const inputErrorLine =
     output.kind === 'error' && !output.side ? output.error.line ?? null : null;
@@ -341,6 +357,8 @@ export function useJsonToolsPage() {
     output,
     notice,
     setNotice,
+    hintDialog,
+    setHintDialog,
     copied,
     selected,
     fileInputRef,

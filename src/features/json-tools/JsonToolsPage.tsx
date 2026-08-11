@@ -6,6 +6,7 @@ import { DownloadIcon } from '@/shared/components/Icons';
 import { Button } from '@/shared/components/Button/Button';
 import HelpTip from '@/shared/components/HelpTip/HelpTip';
 import Notice from '@/shared/components/Notice/Notice';
+import AlertDialog from '@/shared/components/AlertDialog/AlertDialog';
 import JsonEditor from '@/features/json-tools/components/JsonEditor';
 import JsonErrorView from '@/features/json-tools/components/JsonErrorView';
 import JsonValidView from '@/features/json-tools/components/JsonValidView';
@@ -45,6 +46,8 @@ export default function JsonToolsPage() {
     output,
     notice,
     setNotice,
+    hintDialog,
+    setHintDialog,
     copied,
     selected,
     fileInputRef,
@@ -337,6 +340,15 @@ export default function JsonToolsPage() {
           <span className={styles.toastIcon}>✓</span>
           {messages.json.copySuccess}
         </div>
+      )}
+
+      {hintDialog && (
+        <AlertDialog
+          title={messages.json.dialogTitle}
+          message={hintDialog}
+          confirmText={messages.json.dialogConfirm}
+          onClose={() => setHintDialog(null)}
+        />
       )}
     </div>
   );

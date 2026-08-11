@@ -17,7 +17,7 @@ import { expect, test } from '@playwright/test';
 const OUT_DIR = join(process.cwd(), '.e2e-out');
 mkdirSync(OUT_DIR, { recursive: true });
 
-test('JSON 工具全量测试', async ({ browser }) => {
+test('JSON 工具全量测试', { timeout: 240_000 }, async ({ browser }) => {
   const results = [];
   const failures = [];
   const pageErrors = [];
@@ -269,6 +269,68 @@ test('JSON 工具全量测试', async ({ browser }) => {
   await wait(300);
   const sideError = await errorState();
   ok('对比：右侧非法时标注错误侧', sideError.invalid === 'JSON 不合法' && sideError.side !== null, JSON.stringify(sideError));
+
+  // 对比复制/下载前校验选中项
+  await textarea(0).fill('{"a":1,"b":2}');
+  await textarea(1).fill('{"a":1,"c":3}');
+  await startCompare();
+  await wait(300);
+  await page.getByRole('button', { name: '取消全选', exact: true }).click();
+  await page.getByRole('button', { name: '复制结果', exact: true }).click();
+  await wait(300);
+  const noSelCopy = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('[role="alertdialog"]')).some((e) =>
+      e.textContent.includes('要复制的内容'),
+    ),
+  );
+  ok('对比复制：未选中时弹框提示且不复制', noSelCopy);
+  await page.getByRole('button', { name: '知道了', exact: true }).click();
+
+  await page.locator('[class*="changeCheckbox"]').nth(0).click();
+  await page.getByRole('button', { name: '复制结果', exact: true }).click();
+  await wait(300);
+  const selectedClipboard = await page.evaluate(() =>
+    navigator.clipboard.readText().catch(() => ''),
+  );
+  ok(
+    '对比复制：仅复制选中的差异项',
+    !selectedClipboard.includes('\n') && /^[+\-~]/.test(selectedClipboard),
+    selectedClipboard.slice(0, 60),
+  );
+
+  await page.locator('[class*="changeCheckbox"]').nth(0).click(); // 取消选中，回到未选中状态
+  const noDownload = new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(true), 1500);
+    page.once('download', () => {
+      clearTimeout(timer);
+      resolve(false);
+    });
+  });
+  await toolbarBtn(2).click();
+  await wait(300);
+  const noSelDownload = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('[role="alertdialog"]')).some((e) =>
+      e.textContent.includes('要下载的内容'),
+    ),
+  );
+  ok('对比下载：未选中时弹框提示且不下载', (await noDownload) && noSelDownload);
+  await page.getByRole('button', { name: '知道了', exact: true }).click();
+
+  await page.locator('[class*="changeCheckbox"]').nth(0).click();
+  const [diffDownload] = await Promise.all([
+    page.waitForEvent('download', { timeout: 30_000 }),
+    toolbarBtn(2).click(),
+  ]);
+  const diffDownloadPath = join(OUT_DIR, 'json-diff.txt');
+  await diffDownload.saveAs(diffDownloadPath);
+  const downloadedDiff = readFileSync(diffDownloadPath, 'utf8');
+  ok(
+    '对比下载：内容为选中的差异项',
+    diffDownload.suggestedFilename() === 'json-diff.txt' &&
+      downloadedDiff.split('\n').length === 1 &&
+      downloadedDiff.length > 0,
+    `${diffDownload.suggestedFilename()} / ${downloadedDiff.slice(0, 60)}`,
+  );
 
   // ---- 7. 导入文件 ----
   const fixtureDir = join(process.env.TEMP ?? 'C:\\Users\\52514\\AppData\\Local\\Temp', 'devkits-json-fixtures');
