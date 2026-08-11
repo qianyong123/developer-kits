@@ -39,8 +39,6 @@ export default function JsonToolsPage() {
     setIndent,
     sortKeys,
     setSortKeys,
-    unwrap,
-    setUnwrap,
     lenient,
     setLenient,
     output,
@@ -199,15 +197,6 @@ export default function JsonToolsPage() {
               </label>
             </>
           )}
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={unwrap}
-              onChange={(e) => setUnwrap(e.target.checked)}
-            />
-            {messages.json.unwrapJsonString}
-            <HelpTip text={messages.json.settingsHelp.unwrap} />
-          </label>
           <label className={styles.checkbox}>
             <input
               type="checkbox"

@@ -40,8 +40,6 @@ export function useJsonToolsPage() {
   const setIndent = useJsonToolsStore((s) => s.setIndent);
   const sortKeys = useJsonToolsStore((s) => s.sortKeys);
   const setSortKeys = useJsonToolsStore((s) => s.setSortKeys);
-  const unwrap = useJsonToolsStore((s) => s.unwrap);
-  const setUnwrap = useJsonToolsStore((s) => s.setUnwrap);
   const lenient = useJsonToolsStore((s) => s.lenient);
   const setLenient = useJsonToolsStore((s) => s.setLenient);
   const clearData = useJsonToolsStore((s) => s.clearData);
@@ -139,7 +137,8 @@ export function useJsonToolsPage() {
       }
 
       if (act === 'validate') {
-        const result = validateJson(input, { unwrapString: unwrap, lenient });
+        // 自动解包默认开启：带引号的 JSON 字符串按内层 JSON 校验
+        const result = validateJson(input, { unwrapString: true, lenient });
         if (!result.ok) {
           setOutput({ kind: 'error', error: result.error! });
           return;
@@ -173,7 +172,7 @@ export function useJsonToolsPage() {
       setInput(text);
       setOutput({ kind: 'idle' });
     },
-    [input, indent, sortKeys, unwrap, lenient, setInput],
+    [input, indent, sortKeys, lenient, setInput],
   );
 
   const runType = useCallback(() => {
@@ -186,9 +185,10 @@ export function useJsonToolsPage() {
       setOutput({ kind: 'error', error: parsed.error });
       return;
     }
-    const value = unwrap ? unwrapJsonString(parsed.value, lenient) : parsed.value;
+    // 自动解包默认开启：字符串里套着 JSON 时按内层结构生成类型
+    const value = unwrapJsonString(parsed.value, lenient);
     setOutput({ kind: 'text', text: jsonToTsTypes(value), value, bigNumbers: [] });
-  }, [typeInput, unwrap, lenient]);
+  }, [typeInput, lenient]);
 
   // 类型模式自动处理；处理/对比模式改为点击按钮手动触发
   useDebouncedEffect(
@@ -350,8 +350,6 @@ export function useJsonToolsPage() {
     setIndent,
     sortKeys,
     setSortKeys,
-    unwrap,
-    setUnwrap,
     lenient,
     setLenient,
     output,

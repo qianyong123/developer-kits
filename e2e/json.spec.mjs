@@ -210,8 +210,19 @@ test('JSON 工具全量测试', { timeout: 240_000 }, async ({ browser }) => {
   );
   ok('校验：大数精度提示', bigNumWarn);
 
+  // 自动解包默认开启：带引号的 JSON 字符串按内层 JSON 校验
+  await fillCm('"{\\"a\\":1}"');
+  await actionBtn('校验').click();
+  await wait();
+  v = await validState();
+  ok(
+    '校验：自动解包默认开启，带引号 JSON 按内层校验',
+    v.title === '✓ JSON 合法' && v.warnings === 0,
+    JSON.stringify(v),
+  );
+
   // ---- 4. 宽松模式（JSONC） ----
-  await page.locator('[class*="checkbox"] input').nth(2).check(); // 宽松模式
+  await page.locator('[class*="checkbox"] input').nth(1).check(); // 宽松模式
   await fillCm('{ a: 1, // 注释\n  b: [1, 2,], }');
   await actionBtn('格式化').click();
   await wait();
@@ -221,7 +232,7 @@ test('JSON 工具全量测试', { timeout: 240_000 }, async ({ browser }) => {
     text.includes('"a": 1') && text.includes('"b": ['),
     text.slice(0, 60),
   );
-  await page.locator('[class*="checkbox"] input').nth(2).uncheck();
+  await page.locator('[class*="checkbox"] input').nth(1).uncheck();
 
   // ---- 5. 类型生成 ----
   await modeBtn(2).click();
