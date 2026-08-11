@@ -7,6 +7,9 @@ export const appMessages = {
   navJson: 'JSON 工具',
   themeLight: '浅色模式',
   themeDark: '深色模式',
+  loading: '加载中…',
+  openMenu: '打开菜单',
+  backToTop: '回到顶部',
   errorTitle: '页面出错了',
   errorRetry: '重试',
 } as const;

@@ -9,21 +9,21 @@ import styles from '@/features/image-compressor/components/SettingsPanel.module.
 
 /** 质量预设档位：极致 / 高保真（默认）/ 均衡 / 小体积 */
 const QUALITY_PRESETS: Array<{ value: number; label: string }> = [
-  { value: 95, label: '极致' },
-  { value: 80, label: '高保真' },
-  { value: 65, label: '标准' },
-  { value: 40, label: '紧凑' },
+  { value: 95, label: messages.image.qualityExtreme },
+  { value: 80, label: messages.image.qualityHighFidelity },
+  { value: 65, label: messages.image.qualityStandard },
+  { value: 40, label: messages.image.qualityCompact },
 ];
 /** 压缩比例预设档位：压缩后体积不超过原图的对应比例（原图 = 不主动缩小，仅保证不超过原图）*/
 const RATIO_PRESETS: Array<{ value: number; label: string }> = [
-  { value: 100, label: '原图' },
+  { value: 100, label: messages.image.original },
   { value: 70, label: '70%' },
   { value: 50, label: '50%' },
   { value: 20, label: '20%' },
 ];
 /** 输出格式预设 */
 const FORMAT_PRESETS: Array<{ value: FormatOption; label: string }> = [
-  { value: 'original', label: '原格式' },
+  { value: 'original', label: messages.image.formatOriginalShort },
   { value: 'webp', label: 'WebP' },
   { value: 'jpeg', label: 'JPEG' },
   { value: 'png', label: 'PNG' },

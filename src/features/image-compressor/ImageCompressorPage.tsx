@@ -36,7 +36,7 @@ const MAX_FILES_PER_BATCH = 50;
 
 const IMAGE_PICK_TYPES = [
   {
-    description: '图片',
+    description: messages.image.pickDescription,
     accept: {
       'image/*': [
         '.jpg',
@@ -71,7 +71,7 @@ function formatLabel(file: File): string {
   };
   if (map[file.type]) return map[file.type];
   const ext = file.name.split('.').pop()?.toUpperCase();
-  return ext && ext.length <= 5 ? ext : '该图片';
+  return ext && ext.length <= 5 ? ext : messages.image.unknownImageName;
 }
 
 function describeError(err: unknown): string {

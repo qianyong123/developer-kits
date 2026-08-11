@@ -64,7 +64,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             type="button"
             className={styles.menuButton}
             onClick={() => setOpen(true)}
-            aria-label="打开菜单"
+            aria-label={messages.app.openMenu}
           >
             <MenuIcon size={20} />
           </button>

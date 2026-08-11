@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowUpIcon } from '@/shared/components/Icons';
+import { messages } from '@/shared/i18n/zh';
 import styles from '@/shared/components/BackToTop/BackToTop.module.css';
 
 const SHOW_THRESHOLD = 300;
@@ -40,8 +41,8 @@ export function BackToTop() {
       type="button"
       className={`${styles.backToTop} ${visible ? styles.visible : ''}`}
       onClick={() => resolveScroller().scrollTo({ top: 0, behavior: 'smooth' })}
-      aria-label="回到顶部"
-      title="回到顶部"
+      aria-label={messages.app.backToTop}
+      title={messages.app.backToTop}
     >
       <ArrowUpIcon size={18} />
     </button>

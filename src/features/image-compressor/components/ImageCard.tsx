@@ -38,7 +38,7 @@ const STATUS_TEXT: Record<ImageItem['status'], string> = {
   processing: messages.image.statusProcessing,
   done: messages.image.statusDone,
   error: messages.image.statusError,
-  unsupported: '未支持',
+  unsupported: messages.image.statusUnsupported,
 };
 
 function noteText(note?: string): string | null {
