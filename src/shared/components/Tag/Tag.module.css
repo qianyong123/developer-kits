@@ -17,15 +17,15 @@
 
 .success {
   background: var(--success);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .danger {
   background: var(--danger);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .warning {
   background: var(--warning);
-  color: #fff;
+  color: var(--text-inverse);
 }

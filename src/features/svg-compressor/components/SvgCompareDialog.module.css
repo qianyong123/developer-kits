@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.68);
+  background: var(--overlay-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,8 +10,8 @@
 }
 
 .dialog {
-  background: #2a2a2a;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--viewer-bg);
+  border: 1px solid var(--viewer-border);
   border-radius: var(--radius);
   max-width: min(1400px, 94vw);
   width: 100%;
@@ -26,13 +26,13 @@
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
-  color: #f3f4f6;
+  color: var(--viewer-text);
 }
 
 .close {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--viewer-text-secondary);
   font-size: 16px;
 }
 
@@ -50,15 +50,15 @@
 }
 
 .tab {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.7);
+  background: var(--viewer-tab-bg);
+  border: 1px solid var(--viewer-border);
+  color: var(--viewer-tab-text);
 }
 
 .tabActive {
   background: var(--accent);
   border: 1px solid var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .meta {
@@ -85,13 +85,13 @@
 
 .codeMeta {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--viewer-meta);
 }
 
 .copyBtn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #e5e7eb;
+  background: var(--viewer-tab-bg);
+  border: 1px solid var(--viewer-border);
+  color: var(--viewer-label);
   border-radius: var(--radius-sm);
   padding: 5px 14px;
   font-size: 12px;
@@ -105,8 +105,8 @@
 .code {
   margin: 0;
   padding: 14px;
-  background: #1f2329;
-  color: #d7dae0;
+  background: var(--inverse-bg);
+  color: var(--inverse-text);
   border-radius: var(--radius-sm);
   font-family: 'Cascadia Code', Consolas, Menlo, monospace;
   font-size: 12px;
@@ -138,7 +138,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--viewer-chip-bg);
   }
 
   .code {

@@ -28,13 +28,13 @@
 .primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .primary:hover:not(:disabled) {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .outline {
@@ -44,7 +44,7 @@
 }
 
 .outline:hover:not(:disabled) {
-  background: rgba(79, 70, 229, 0.08);
+  background: var(--accent-faint);
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -57,7 +57,7 @@
 
 .danger:hover:not(:disabled) {
   background: var(--danger);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .sm {

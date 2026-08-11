@@ -29,7 +29,7 @@
   height: 40px;
   border-radius: 12px;
   background: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -157,7 +157,7 @@
     height: 100vh;
     transform: translateX(-100%);
     transition: transform 0.22s ease;
-    box-shadow: 8px 0 28px rgba(17, 24, 39, 0.12);
+    box-shadow: var(--shadow-drawer-right);
   }
 
   .sidebarOpen {
@@ -214,7 +214,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(17, 24, 39, 0.45);
+    background: var(--overlay);
     z-index: 110;
   }
 }

@@ -1,5 +1,5 @@
 .dropzone {
-  border: 2px dashed #c7d2fe;
+  border: 2px dashed var(--accent-border);
   border-radius: 16px;
   padding: 44px 20px 36px;
   text-align: center;
@@ -13,7 +13,7 @@
 .dropzone:hover,
 .dragging {
   border-color: var(--accent);
-  background: rgba(99, 102, 241, 0.05);
+  background: var(--accent-faint);
 }
 
 .icon {
@@ -31,7 +31,7 @@
   margin-top: 14px;
   font-size: 16px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text);
 }
 
 .tapText {

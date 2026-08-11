@@ -19,6 +19,49 @@
   --danger: #ef4444;
   --danger-soft: rgba(239, 68, 68, 0.14);
   --warning: #e6a23c;
+  /* 反色文字与控件表面 */
+  --text-inverse: #ffffff;
+  --control-knob: #ffffff;
+  /* 透明背景棋盘格 */
+  --preview-bg: #ffffff;
+  --preview-checker: #e5e7eb;
+  --compare-checker-bg: #d4d4d4;
+  --compare-checker-square: #b0b3b4;
+  /* 深色看图/代码面板（不随主题变化） */
+  --viewer-bg: #2a2a2a;
+  --viewer-border: rgba(255, 255, 255, 0.14);
+  --viewer-text: #f3f4f6;
+  --viewer-text-secondary: rgba(255, 255, 255, 0.65);
+  --viewer-meta: rgba(255, 255, 255, 0.6);
+  --viewer-tab-bg: rgba(255, 255, 255, 0.08);
+  --viewer-tab-text: rgba(255, 255, 255, 0.7);
+  --viewer-label: #e5e7eb;
+  --viewer-chip-bg: rgba(255, 255, 255, 0.12);
+  --inverse-bg: #1f2329;
+  --inverse-text: #d7dae0;
+  /* 遮罩与弱化表面 */
+  --overlay: rgba(17, 24, 39, 0.45);
+  --overlay-strong: rgba(0, 0, 0, 0.68);
+  --badge-overlay: rgba(0, 0, 0, 0.55);
+  --overlay-chip: rgba(30, 41, 59, 0.72);
+  --accent-faint: rgba(99, 102, 241, 0.05);
+  --accent-border: #c7d2fe;
+  --neutral-soft: rgba(156, 163, 175, 0.18);
+  --neutral-muted: rgba(154, 163, 178, 0.35);
+  --danger-faint: rgba(239, 68, 68, 0.06);
+  --danger-border: rgba(239, 68, 68, 0.35);
+  --danger-border-soft: rgba(239, 68, 68, 0.25);
+  --warning-soft: rgba(230, 162, 60, 0.12);
+  --warning-border: rgba(230, 162, 60, 0.35);
+  /* 阴影 */
+  --shadow-drawer-left: -8px 0 28px rgba(17, 24, 39, 0.12);
+  --shadow-drawer-right: 8px 0 28px rgba(17, 24, 39, 0.12);
+  --shadow-pop: 0 4px 16px rgba(0, 0, 0, 0.18);
+  --shadow-sheet: 0 8px 32px rgba(0, 0, 0, 0.18);
+  --shadow-dialog: 0 12px 32px rgba(0, 0, 0, 0.2);
+  --shadow-fab: 0 4px 14px rgba(0, 0, 0, 0.2);
+  --shadow-knob: 0 1px 2px rgba(16, 24, 40, 0.25);
+  --shadow-accent: 0 1px 3px rgba(79, 70, 229, 0.35);
   color-scheme: light;
   --radius: 12px;
   --radius-sm: 8px;
@@ -46,6 +89,17 @@
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.16);
   --warning: #fbbf24;
+  /* 以下仅在深色主题下有差异，其余令牌继承浅色主题定义 */
+  --accent-faint: rgba(129, 140, 248, 0.08);
+  --accent-border: #4f46e5;
+  --neutral-soft: rgba(148, 163, 184, 0.16);
+  --neutral-muted: rgba(148, 163, 184, 0.3);
+  --danger-faint: rgba(248, 113, 113, 0.08);
+  --danger-border: rgba(248, 113, 113, 0.35);
+  --danger-border-soft: rgba(248, 113, 113, 0.25);
+  --warning-soft: rgba(251, 191, 36, 0.16);
+  --warning-border: rgba(251, 191, 36, 0.35);
+  --shadow-accent: 0 1px 3px rgba(99, 102, 241, 0.35);
   color-scheme: dark;
 }
 
@@ -122,11 +176,11 @@ button {
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .btn-primary:hover:not(:disabled) {
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .btn-primary:hover:not(:disabled) {

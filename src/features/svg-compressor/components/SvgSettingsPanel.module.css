@@ -93,9 +93,9 @@
 
 .segmentActive {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.35);
+  box-shadow: var(--shadow-accent);
 }
 
 .collapseBtn {

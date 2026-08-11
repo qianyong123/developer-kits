@@ -16,7 +16,7 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  background: rgba(154, 163, 178, 0.35);
+  background: var(--neutral-muted);
   color: var(--text-secondary);
   font-size: 11px;
   line-height: 1;
@@ -29,15 +29,15 @@
   left: 50%;
   transform: translateX(-50%);
   width: 220px;
-  background: #1f2329;
-  color: #fff;
+  background: var(--inverse-bg);
+  color: var(--text-inverse);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   font-size: 12px;
   line-height: 1.6;
   text-align: left;
   z-index: 20;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-pop);
 }
 
 .bubble::after {
@@ -47,13 +47,13 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: #1f2329;
+  border-top-color: var(--inverse-bg);
 }
 
 .mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -70,5 +70,5 @@
   font-size: 13px;
   line-height: 1.7;
   color: var(--text);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-sheet);
 }

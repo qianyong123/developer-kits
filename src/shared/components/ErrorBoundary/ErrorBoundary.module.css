@@ -25,7 +25,7 @@
 .retry {
   background: var(--accent);
   border: 1px solid var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
   border-radius: var(--radius-sm);
   padding: 8px 20px;
   font-size: 14px;

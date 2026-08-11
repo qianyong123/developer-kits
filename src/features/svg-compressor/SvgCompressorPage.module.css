@@ -109,7 +109,7 @@
     background: var(--bg-panel);
     border-left: 1px solid var(--border);
     border-radius: 0;
-    box-shadow: -8px 0 28px rgba(17, 24, 39, 0.12);
+    box-shadow: var(--shadow-drawer-left);
     padding: 20px 16px;
     overflow-y: auto;
     transform: translateX(100%);
@@ -125,7 +125,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(17, 24, 39, 0.45);
+    background: var(--overlay);
     z-index: 140;
   }
 

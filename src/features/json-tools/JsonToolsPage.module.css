@@ -87,9 +87,9 @@
 
 .modeActive {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.35);
+  box-shadow: var(--shadow-accent);
 }
 
 .options {
@@ -118,7 +118,7 @@
 .segmentActive {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .checkbox {
@@ -203,7 +203,7 @@
   left: 0;
   right: 0;
   height: 20.8px;
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--danger-soft);
   border-left: 3px solid var(--danger);
   pointer-events: none;
   z-index: 0;
@@ -310,7 +310,7 @@
   gap: 6px;
   color: var(--danger);
   background: var(--danger-soft);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid var(--danger-border);
   border-radius: var(--radius-sm);
   padding: 14px;
 }
@@ -336,8 +336,8 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  background: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: var(--danger-faint);
+  border: 1px solid var(--danger-border-soft);
   border-radius: 6px;
   padding: 6px 8px;
   overflow-x: auto;
@@ -352,7 +352,7 @@
 }
 
 .errorMark {
-  background: rgba(239, 68, 68, 0.35);
+  background: var(--danger-border);
   color: var(--danger);
   border-radius: 2px;
   padding: 0 1px;
@@ -390,8 +390,8 @@
   gap: 4px;
   color: var(--warning);
   font-size: 13px;
-  background: rgba(230, 162, 60, 0.12);
-  border: 1px solid rgba(230, 162, 60, 0.35);
+  background: var(--warning-soft);
+  border: 1px solid var(--warning-border);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
@@ -459,7 +459,7 @@
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 12px;
-  color: #fff;
+  color: var(--text-inverse);
   margin-top: 1px;
 }
 
@@ -501,7 +501,7 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--text);
-  background: rgba(230, 162, 60, 0.14);
+  background: var(--warning-soft);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   padding: 8px 10px;
@@ -683,7 +683,7 @@
 }
 
 .cmErrorLine {
-  background: rgba(239, 68, 68, 0.12);
+  background: var(--danger-soft);
 }
 
 .cmSearchCount {
@@ -693,8 +693,8 @@
   z-index: 20;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(30, 41, 59, 0.72);
-  color: #fff;
+  background: var(--overlay-chip);
+  color: var(--text-inverse);
   font-size: 12px;
   pointer-events: none;
 }
