@@ -131,6 +131,26 @@ test('JSON 工具全量测试', { timeout: 240_000 }, async ({ browser }) => {
     text.slice(0, 80),
   );
 
+  // 主题切换：CodeMirror 编辑器背景即时同步，无需切换导航重挂载
+  const editorBg = () =>
+    page.evaluate(() => {
+      const cm = document.querySelector('[class*="cm-editor"]');
+      return cm ? getComputedStyle(cm).backgroundColor : null;
+    });
+  const lightEditorBg = await editorBg();
+  await page.locator('aside [class*="themeToggle"]').first().click();
+  await wait(300);
+  const darkEditorBg = await editorBg();
+  ok(
+    '主题切换：JSON 编辑器背景即时同步',
+    lightEditorBg !== null &&
+      darkEditorBg !== null &&
+      lightEditorBg !== darkEditorBg,
+    `${lightEditorBg} -> ${darkEditorBg}`,
+  );
+  await page.locator('aside [class*="themeToggle"]').first().click();
+  await wait(300);
+
   // ---- 2. 压缩 ----
   await fillCm('{ "b" : 1, "a" : [ 1, 2 ] }');
   await actionBtn('压缩').click();
@@ -411,9 +431,11 @@ test('JSON 工具全量测试', { timeout: 240_000 }, async ({ browser }) => {
   await mPage.waitForTimeout(700);
   const mobile = await mPage.evaluate(() => {
     const box = document.querySelector('[class*="cmBox"]');
+    const viewport = document.documentElement.clientWidth;
     return {
-      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      singleColumn: box ? Math.round(box.getBoundingClientRect().width) >= 330 : false,
+      overflow: document.documentElement.scrollWidth - viewport,
+      // 单列判断：编辑器占据视口 60% 以上（双列布局时每列约一半）
+      singleColumn: box ? box.getBoundingClientRect().width > viewport * 0.6 : false,
     };
   });
   ok(
