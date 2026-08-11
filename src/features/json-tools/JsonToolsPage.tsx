@@ -4,6 +4,7 @@ import { json } from '@codemirror/lang-json';
 import { messages } from '@/shared/i18n/zh';
 import { DownloadIcon } from '@/shared/components/Icons';
 import { Button } from '@/shared/components/Button/Button';
+import { Checkbox } from '@/shared/components/Checkbox/Checkbox';
 import HelpTip from '@/shared/components/HelpTip/HelpTip';
 import Notice from '@/shared/components/Notice/Notice';
 import AlertDialog from '@/shared/components/AlertDialog/AlertDialog';
@@ -186,26 +187,30 @@ export default function JsonToolsPage() {
                   {n}
                 </button>
               ))}
-              <label className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  checked={sortKeys}
-                  onChange={(e) => setSortKeys(e.target.checked)}
-                />
-                {messages.json.sortKeys}
-                <HelpTip text={messages.json.settingsHelp.sortKeys} />
-              </label>
+              <Checkbox
+                className={styles.checkbox}
+                checked={sortKeys}
+                onChange={setSortKeys}
+                label={
+                  <>
+                    {messages.json.sortKeys}
+                    <HelpTip text={messages.json.settingsHelp.sortKeys} />
+                  </>
+                }
+              />
             </>
           )}
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={lenient}
-              onChange={(e) => setLenient(e.target.checked)}
-            />
-            {messages.json.lenient}
-            <HelpTip text={messages.json.settingsHelp.lenient} />
-          </label>
+          <Checkbox
+            className={styles.checkbox}
+            checked={lenient}
+            onChange={setLenient}
+            label={
+              <>
+                {messages.json.lenient}
+                <HelpTip text={messages.json.settingsHelp.lenient} />
+              </>
+            }
+          />
           {mode === 'type' && (
             <span className={styles.modeHint}>{messages.json.modeTypeHint}</span>
           )}

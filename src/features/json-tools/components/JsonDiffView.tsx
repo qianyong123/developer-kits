@@ -2,6 +2,7 @@ import { JsonView, defaultStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 import { messages } from '@/shared/i18n/zh';
 import { Button } from '@/shared/components/Button/Button';
+import { Checkbox } from '@/shared/components/Checkbox/Checkbox';
 import { Tag } from '@/shared/components/Tag/Tag';
 import { shortValue, type JsonChange } from '@/features/json-tools/lib/json';
 import { LONG_STRING_LENGTH } from '@/features/json-tools/constants';
@@ -69,6 +70,8 @@ export default function JsonDiffView({
   const added = changes.filter((c) => c.type === 'added').length;
   const removed = changes.filter((c) => c.type === 'removed').length;
   const changed = changes.filter((c) => c.type === 'changed').length;
+  const allSelected = changes.length > 0 && selected.size === changes.length;
+  const someSelected = selected.size > 0 && !allSelected;
 
   return (
     <div className={styles.diffBox}>
@@ -97,19 +100,16 @@ export default function JsonDiffView({
               </span>
             </span>
             <span className={styles.toolbarRight}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={
-                  changes.length > 0 && selected.size === changes.length
-                    ? onClearSelection
-                    : onSelectAll
-                }
-              >
-                {changes.length > 0 && selected.size === changes.length
-                  ? messages.json.clearSelection
-                  : messages.json.selectAll}
-              </Button>
+              <Checkbox
+                className={styles.selectAll}
+                checked={allSelected}
+                indeterminate={someSelected}
+                label={messages.json.selectAll}
+                onChange={(checked) => {
+                  if (checked) onSelectAll();
+                  else onClearSelection();
+                }}
+              />
               <Button variant="primary" size="sm" onClick={onCopyResult}>
                 {messages.json.copyResult}
               </Button>
@@ -122,14 +122,20 @@ export default function JsonDiffView({
                 className={`${styles.changeRow} ${
                   selected.has(i) ? styles.changeRowSelected : ''
                 }`}
-                onClick={() => onToggleSelect(i)}
+                onClick={(e) => {
+                  // 复选框自身已切换选中，避免点击复选框时整行再触发一次
+                  const target = e.target as HTMLElement;
+                  if (target.closest('input[type="checkbox"]')) return;
+                  onToggleSelect(i);
+                }}
               >
                 <div className={styles.changeHeader}>
-                  <input
-                    type="checkbox"
-                    className={styles.changeCheckbox}
+                  <Checkbox
                     checked={selected.has(i)}
-                    onClick={(e) => e.stopPropagation()}
+                    ariaLabel={messages.json.selectDiffRow(
+                      change.path.replace(/^\$\.?/, ''),
+                    )}
+                    inputClassName={styles.changeCheckbox}
                     onChange={() => onToggleSelect(i)}
                   />
                   <span className={`${styles.changeBadge} ${styles[change.type]}`}>

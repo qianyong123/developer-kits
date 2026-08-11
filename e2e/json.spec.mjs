@@ -306,7 +306,7 @@ test('JSON 工具全量测试', { timeout: 240_000 }, async ({ browser }) => {
   await textarea(1).fill('{"a":1,"c":3}');
   await startCompare();
   await wait(300);
-  await page.getByRole('button', { name: '取消全选', exact: true }).click();
+  await page.getByRole('checkbox', { name: '全选', exact: true }).click();
   await page.getByRole('button', { name: '复制结果', exact: true }).click();
   await wait(300);
   const noSelCopy = await page.evaluate(() =>
