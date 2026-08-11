@@ -6,15 +6,6 @@
   gap: 18px;
   background: var(--bg-card);
   padding: 0;
-  --json-button-text: #4b5563;
-}
-
-:root[data-theme='dark'] .page {
-  --json-button-text: var(--text-secondary);
-}
-
-.page .defaultButton {
-  color: var(--json-button-text);
 }
 
 .header {
