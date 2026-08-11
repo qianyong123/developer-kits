@@ -30,6 +30,7 @@ export const jsonMessages = {
   lenient: '宽松模式（JSONC）',
   keyboardHint: '快捷键：Ctrl + Enter 处理',
   cmSearchHint: '编辑框内 Ctrl+F 搜索',
+  searchMatches: (count: number) => `匹配 ${count} 个`,
   settingsHelp: {
     sortKeys: '格式化时按字典序排列对象键，输出更稳定、便于阅读与对比。',
     unwrap:
