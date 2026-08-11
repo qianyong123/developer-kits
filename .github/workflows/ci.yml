@@ -4,6 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -30,7 +31,7 @@ jobs:
         run: npm run test:e2e
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'workflow_dispatch'
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -50,5 +51,5 @@ jobs:
       - name: Login to CloudBase
         run: tcb login --apiKeyId "${{ secrets.TENCENT_SECRET_ID }}" --apiKey "${{ secrets.TENCENT_SECRET_KEY }}"
 
-      - name: Deploy static hosting
-        run: tcb hosting deploy ./dist -e kits-dev-d4g4yxxnw8e41a263
+      - name: Deploy to CloudBase (versioned)
+        run: tcb app deploy developer-kits --env-id kits-dev-d4g4yxxnw8e41a263 --deploy-path / --install-command "npm install" --build-command "npm run build" --output-dir dist --enable-git-ignore --force

@@ -1,3 +1,11 @@
 {
-  "envId": "kits-dev-d4g4yxxnw8e41a263"
+  "envId": "kits-dev-d4g4yxxnw8e41a263",
+  "app": {
+    "serviceName": "developer-kits",
+    "framework": "vite",
+    "installCommand": "npm install",
+    "buildCommand": "npm run build",
+    "outputDir": "dist",
+    "deployPath": "/"
+  }
 }
