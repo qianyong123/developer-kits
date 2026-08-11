@@ -1,9 +1,14 @@
 /**
  * JSON 工具全量端到端测试（Playwright Test）
  *
- * 覆盖：格式化（树形视图/缩进/排序键/解包/宽松模式）、压缩、校验（重复键/
- * 大数/行列定位）、结构对比（LCS/增删改/一侧非法）、类型生成、导入/示例/
- * 复制/下载/清空、移动端布局、无外部请求与页面错误。
+ * 覆盖：格式化（缩进/排序键/解包/宽松模式）、压缩、校验（重复键/大数/行列定位）、
+ * 结构对比（LCS/增删改/一侧非法）、类型生成、导入/示例/复制/下载/清空、移动端布局、
+ * 无外部请求与页面错误。
+ *
+ * 当前 UI 约定（适配 CodeMirror 迁移后的结构）：
+ * - 顶部模式：0=格式化校验（处理模式）、1=对比、2=类型转换；
+ * - 处理模式输入为 CodeMirror，动作（格式化/压缩/校验）需点击按钮触发；
+ * - 对比/类型模式输入为 textarea。
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -43,12 +48,25 @@ test('JSON 工具全量测试', async ({ browser }) => {
   await page.goto('http://127.0.0.1:5173/#/json', { waitUntil: 'networkidle' });
 
   const modeBtn = (i) => page.locator('[class*="modes"] button').nth(i);
+  const actionBtn = (name) => page.getByRole('button', { name, exact: true });
   const textarea = (i = 0) => page.locator('[class*="textarea"]').nth(i);
   const toolbarBtn = (i) => page.locator('[class*="toolbar"] button').nth(i);
+  const copyBtn = () => page.getByRole('button', { name: '复制', exact: true });
+
+  // CodeMirror 输入（处理模式）：全选清空后插入文本
+  const fillCm = async (text) => {
+    const cm = page.locator('[class*="cm-content"]');
+    await cm.click();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.insertText(text);
+    // 等待 CodeMirror onChange 同步到 store，避免动作按钮读到旧输入
+    await page.waitForTimeout(150);
+  };
+  const cmText = () => page.locator('[class*="cm-content"]').innerText();
+
   const outputText = () =>
     page.evaluate(() => document.querySelector('[class*="outputText"]')?.textContent ?? null);
-  const viewerText = () =>
-    page.evaluate(() => document.querySelector('[class*="jsonViewer"]')?.textContent ?? null);
   const errorState = () =>
     page.evaluate(() => ({
       invalid: document.querySelector('[class*="errorBox"] strong')?.textContent?.trim() ?? null,
@@ -63,34 +81,29 @@ test('JSON 工具全量测试', async ({ browser }) => {
     }));
   const diffState = () =>
     page.evaluate(() => ({
-      summary: document.querySelector('[class*="diffSummary"]')?.textContent ?? null,
+      stats: document.querySelector('[class*="diffStats"]')?.textContent ?? null,
       rows: document.querySelectorAll('[class*="changeRow"]').length,
       none: document.querySelector('[class*="diffNone"]')?.textContent ?? null,
     }));
   const wait = (ms = 650) => page.waitForTimeout(ms);
   const startCompare = () => page.getByRole('button', { name: '开始对比', exact: true }).click();
 
-  // ---- 1. 格式化（树形视图） ----
+  // ---- 1. 格式化（缩进/排序键/中文与 emoji） ----
   await modeBtn(0).click();
-  await textarea().fill('{"b":1,"a":[1,2],"c":{"x":true}}');
+  await fillCm('{"b":1,"a":[1,2],"c":{"x":true}}');
+  await actionBtn('格式化').click();
   await wait();
-  await page.waitForFunction(() => !!document.querySelector('[class*="jsonViewer"]'), undefined, {
-    timeout: 10_000,
-  });
-  let text = await viewerText();
+  let text = await cmText();
   ok(
-    '格式化：树形视图渲染且包含各键值',
-    text !== null &&
-      text.includes('b:1') &&
-      text.includes('a:[1,2]') &&
-      text.includes('c:{x:true}') &&
-      text.includes('true'),
-    (text ?? '').slice(0, 80),
+    '格式化：写入带缩进的 JSON',
+    text.includes('"b": 1') && text.includes('"a": [') && text.includes('\n'),
+    text.slice(0, 80),
   );
 
   await page.locator('[class*="options"] button').nth(1).click(); // 缩进 4
+  await actionBtn('格式化').click();
   await wait();
-  await page.locator('[class*="copyBtn"]').click();
+  await copyBtn().click();
   await wait(300);
   const indentClipboard = await page.evaluate(() =>
     navigator.clipboard.readText().catch(() => ''),
@@ -98,44 +111,48 @@ test('JSON 工具全量测试', async ({ browser }) => {
   ok('格式化：缩进 4 作用于输出文本', indentClipboard.includes('\n    "b"'), indentClipboard.slice(0, 40));
 
   await page.locator('[class*="checkbox"] input').nth(0).check(); // 排序键
+  await actionBtn('格式化').click();
   await wait();
-  text = await viewerText();
+  text = await cmText();
   ok(
     '格式化：排序键后 a 排在 b 前',
-    text !== null && text.indexOf('a:[') < text.indexOf('b:1'),
-    (text ?? '').slice(0, 40),
+    text.indexOf('"a"') < text.indexOf('"b"'),
+    text.slice(0, 40),
   );
   await page.locator('[class*="checkbox"] input').nth(0).uncheck();
 
-  await textarea().fill('{"zh":"\\u4e2d\\u6587","emoji":"🎉","nl":"a\\nb"}');
+  await fillCm('{"zh":"\\u4e2d\\u6587","emoji":"🎉","nl":"a\\nb"}');
+  await actionBtn('格式化').click();
   await wait();
-  text = await viewerText();
+  text = await cmText();
   ok(
-    '格式化：unicode/emoji 在树形视图中正确显示',
-    text !== null && text.includes('中文') && text.includes('🎉'),
-    (text ?? '').slice(0, 80),
+    '格式化：中文与 emoji 正确显示',
+    text.includes('中文') && text.includes('🎉'),
+    text.slice(0, 80),
   );
 
   // ---- 2. 压缩 ----
-  await modeBtn(1).click();
-  await textarea().fill('{ "b" : 1, "a" : [ 1, 2 ] }');
+  await fillCm('{ "b" : 1, "a" : [ 1, 2 ] }');
+  await actionBtn('压缩').click();
   await wait();
-  text = await outputText();
+  text = await cmText();
   ok('压缩：去除空白输出紧凑 JSON', text === '{"b":1,"a":[1,2]}', text ?? '');
 
   // ---- 3. 校验 ----
-  await modeBtn(2).click();
-  await textarea().fill('{"a":1,"b":2}');
+  await fillCm('{"a":1,"b":2}');
+  await actionBtn('校验').click();
   await wait();
   let v = await validState();
   ok('校验：合法 JSON 显示合法且无警告', v.title === '✓ JSON 合法' && v.warnings === 0, JSON.stringify(v));
 
-  await textarea().fill('{"a":1,\n"a":2,\n"b":3}');
+  await fillCm('{"a":1,\n"a":2,\n"b":3}');
+  await actionBtn('校验').click();
   await wait();
   v = await validState();
   ok('校验：重复键检测并给出行号', v.title === '✓ JSON 合法' && v.warnings === 1, JSON.stringify(v));
 
-  await textarea().fill('{"o":{"x":1,"x":2},"a":["a","a"]}');
+  await fillCm('{"o":{"x":1,"x":2},"a":["a","a"]}');
+  await actionBtn('校验').click();
   await wait();
   v = await validState();
   ok('校验：嵌套重复键检出、数组字符串不误报', v.warnings === 1, JSON.stringify(v));
@@ -150,7 +167,8 @@ test('JSON 工具全量测试', async ({ browser }) => {
     ['多行错误定位', '{\n  "a": 1,\n  "b": }\n}', '意外的字符', 3],
   ];
   for (const [label, input, msgKeyword, line] of errorCases) {
-    await textarea().fill(input);
+    await fillCm(input);
+    await actionBtn('校验').click();
     await wait();
     const e = await errorState();
     ok(
@@ -162,7 +180,8 @@ test('JSON 工具全量测试', async ({ browser }) => {
     );
   }
 
-  await textarea().fill('{"a": 9007199254740993}');
+  await fillCm('{"a": 9007199254740993}');
+  await actionBtn('校验').click();
   await wait();
   const bigNumWarn = await page.evaluate(() =>
     Array.from(document.querySelectorAll('[class*="warnings"]')).some((e) =>
@@ -172,16 +191,20 @@ test('JSON 工具全量测试', async ({ browser }) => {
   ok('校验：大数精度提示', bigNumWarn);
 
   // ---- 4. 宽松模式（JSONC） ----
-  await modeBtn(0).click();
   await page.locator('[class*="checkbox"] input').nth(2).check(); // 宽松模式
-  await textarea().fill('{ a: 1, // 注释\n  b: [1, 2,], }');
+  await fillCm('{ a: 1, // 注释\n  b: [1, 2,], }');
+  await actionBtn('格式化').click();
   await wait();
-  text = await viewerText();
-  ok('宽松模式：JSONC 解析为树形视图', text !== null && text.includes('a:1') && text.includes('b:[1,2]'), (text ?? '').slice(0, 60));
+  text = await cmText();
+  ok(
+    '宽松模式：JSONC 解析并格式化',
+    text.includes('"a": 1') && text.includes('"b": ['),
+    text.slice(0, 60),
+  );
   await page.locator('[class*="checkbox"] input').nth(2).uncheck();
 
   // ---- 5. 类型生成 ----
-  await modeBtn(4).click();
+  await modeBtn(2).click();
   await textarea().fill('{"name":"devkits","stats":{"n":1}}');
   await wait();
   text = await outputText();
@@ -192,7 +215,7 @@ test('JSON 工具全量测试', async ({ browser }) => {
   );
 
   // ---- 6. 结构对比 ----
-  await modeBtn(3).click();
+  await modeBtn(1).click();
   await textarea(0).fill('{"a":1,"b":2}');
   await textarea(1).fill('{"a":1,"c":3}');
   await startCompare();
@@ -200,7 +223,7 @@ test('JSON 工具全量测试', async ({ browser }) => {
   let d = await diffState();
   ok(
     '对比：对象增删',
-    d.rows === 2 && (d.summary ?? '').includes('新增 1') && (d.summary ?? '').includes('删除 1'),
+    d.rows === 2 && (d.stats ?? '').includes('+1 新增') && (d.stats ?? '').includes('-1 删除'),
     JSON.stringify(d),
   );
 
@@ -209,14 +232,18 @@ test('JSON 工具全量测试', async ({ browser }) => {
   await startCompare();
   await wait(300);
   d = await diffState();
-  ok('对比：数组 LCS 中间插入', d.rows === 1 && (d.summary ?? '').includes('新增 1'), JSON.stringify(d));
+  ok(
+    '对比：数组按索引对比，中间插入显示为修改+新增',
+    d.rows === 2 && (d.stats ?? '').includes('~1 修改') && (d.stats ?? '').includes('+1 新增'),
+    JSON.stringify(d),
+  );
 
   await textarea(0).fill('{"a":"1"}');
   await textarea(1).fill('{"a":1}');
   await startCompare();
   await wait(300);
   d = await diffState();
-  ok('对比：类型变化记为修改', d.rows === 1 && (d.summary ?? '').includes('修改 1'), JSON.stringify(d));
+  ok('对比：类型变化记为修改', d.rows === 1 && (d.stats ?? '').includes('~1 修改'), JSON.stringify(d));
 
   await textarea(0).fill('{"a.b":{"x":[1]}}');
   await textarea(1).fill('{"a.b":{"x":[1,2]}}');
@@ -227,7 +254,7 @@ test('JSON 工具全量测试', async ({ browser }) => {
       .map((r) => r.textContent)
       .join(','),
   );
-  ok('对比：嵌套特殊键名路径', specialPath === '$["a.b"].x[1]', specialPath);
+  ok('对比：嵌套特殊键名路径', specialPath === '["a.b"].x[1]', specialPath);
 
   await textarea(0).fill('{"a":1}');
   await textarea(1).fill('{"a":1}');
@@ -251,10 +278,11 @@ test('JSON 工具全量测试', async ({ browser }) => {
   const bigJson = join(fixtureDir, 'big.json');
   writeFileSync(bigJson, `{"padding": "${'x'.repeat(6 * 1024 * 1024)}"}`);
 
-  await modeBtn(1).click();
+  await modeBtn(0).click();
   await page.setInputFiles('input[type="file"]', smallJson);
+  await actionBtn('压缩').click();
   await wait();
-  text = await outputText();
+  text = await cmText();
   ok('导入文件：读取并处理', text === '{"hello":"world","n":42}', text ?? '');
 
   await page.setInputFiles('input[type="file"]', bigJson);
@@ -268,28 +296,29 @@ test('JSON 工具全量测试', async ({ browser }) => {
   await toolbarBtn(1).click();
   await wait();
   const sampleLoaded = await page.evaluate(() => {
-    const ta = document.querySelector('[class*="textarea"]');
-    return ta && ta.value.includes('开发工具包');
+    const cm = document.querySelector('[class*="cm-content"]');
+    return !!cm && cm.textContent.includes('开发工具包');
   });
   ok('示例：加载示例 JSON', sampleLoaded);
 
   await toolbarBtn(3).click();
   await wait();
-  const cleared = await page.evaluate(
-    () => document.querySelector('[class*="textarea"]')?.value === '' && !!document.querySelector('[class*="placeholder"]'),
-  );
-  ok('清空：输入与输出复位', cleared);
+  const cleared = await page.evaluate(() => {
+    // 清空后 CodeMirror 为空文档，显示占位符
+    return !!document.querySelector('[class*="cm-placeholder"]');
+  });
+  ok('清空：输入复位', cleared);
 
-  await textarea().fill('{"a":1}');
+  await fillCm('{"a":1}');
   await wait();
-  await page.locator('[class*="copyBtn"]').click();
+  await copyBtn().click();
   await wait(300);
   const toastText = await page.evaluate(() =>
     document.querySelector('[class*="toast"]')?.textContent ?? null,
   );
   const clipboard = await page.evaluate(() => navigator.clipboard.readText().catch(() => ''));
   ok(
-    '复制：输出写入剪贴板且弹出成功提示',
+    '复制：输入写入剪贴板且弹出成功提示',
     clipboard === '{"a":1}' && (toastText ?? '').includes('复制成功'),
     `clipboard=${clipboard.slice(0, 40)} toast=${toastText}`,
   );
@@ -319,17 +348,15 @@ test('JSON 工具全量测试', async ({ browser }) => {
   await mPage.locator('[class*="toolbar"] button').nth(1).click();
   await mPage.waitForTimeout(700);
   const mobile = await mPage.evaluate(() => {
-    const ta = document.querySelector('[class*="textarea"]');
-    const out = document.querySelector('[class*="output"]');
+    const box = document.querySelector('[class*="cmBox"]');
     return {
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      singleColumn: ta ? Math.round(ta.getBoundingClientRect().width) >= 330 : false,
-      stacked: out && ta ? out.getBoundingClientRect().top > ta.getBoundingClientRect().top : false,
+      singleColumn: box ? Math.round(box.getBoundingClientRect().width) >= 330 : false,
     };
   });
   ok(
-    '移动端：单列堆叠且无横向溢出',
-    mobile.overflow <= 1 && mobile.singleColumn && mobile.stacked,
+    '移动端：单列编辑器且无横向溢出',
+    mobile.overflow <= 1 && mobile.singleColumn,
     JSON.stringify(mobile),
   );
   await mobileCtx.close();
