@@ -816,13 +816,17 @@ export default function JsonToolsPage() {
             <p className={styles.subtitle}>{messages.json.subtitle}</p>
           </div>
           <div className={styles.toolbar}>
-            <Button onClick={() => fileInputRef.current?.click()}>
+            <Button className={styles.defaultButton} onClick={() => fileInputRef.current?.click()}>
               {messages.json.importFile}
             </Button>
-            <Button onClick={loadSample}>
+            <Button className={styles.defaultButton} onClick={loadSample}>
               {messages.json.loadSample}
             </Button>
-            <Button disabled={!downloadText} onClick={downloadOutput}>
+            <Button
+              className={styles.defaultButton}
+              disabled={!downloadText}
+              onClick={downloadOutput}
+            >
               <DownloadIcon size={14} />
               {messages.json.download}
             </Button>
@@ -923,7 +927,7 @@ export default function JsonToolsPage() {
                 <Button variant="primary" onClick={() => void runDiff()}>
                   {messages.json.startCompare}
                 </Button>
-                <Button onClick={swapSides}>
+                <Button className={styles.defaultButton} onClick={swapSides}>
                   {messages.json.swapSides}
                 </Button>
               </div>
