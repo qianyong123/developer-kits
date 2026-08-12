@@ -390,7 +390,7 @@ test('JSON 工具全量测试', { timeout: 240_000 }, async ({ browser }) => {
   await wait();
   const sampleLoaded = await page.evaluate(() => {
     const cm = document.querySelector('[class*="cm-content"]');
-    return !!cm && cm.textContent.includes('开发工具包');
+    return !!cm && cm.textContent.includes('"name": "砺"');
   });
   ok('示例：加载示例 JSON', sampleLoaded);
 
