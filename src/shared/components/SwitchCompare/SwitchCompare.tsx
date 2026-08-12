@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -31,16 +30,18 @@ interface Props {
 
 /**
  * 单张预览图：按图片原始比例缩放（只缩小不放大），不裁剪、不留空隙。
- * 通过 key 切换 src 时重新挂载，避免沿用上一张图的计算尺寸。
+ * 原图与压缩后常驻渲染，切换时仅通过显隐 class 切换，避免重新加载图片造成闪动。
  */
 function CompareFrame({
   src,
   alt,
   background,
+  className,
 }: {
   src: string;
   alt: string;
   background: 'white' | 'checker';
+  className?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
@@ -70,7 +71,7 @@ function CompareFrame({
   };
 
   return (
-    <div ref={panelRef} className={styles.panel}>
+    <div ref={panelRef} className={`${styles.panel}${className ? ` ${className}` : ''}`}>
       <div className={styles.frame}>
         <img
           className={`${styles.img} ${background === 'checker' ? styles.checkerImg : ''}`}
@@ -104,15 +105,7 @@ export default function SwitchCompare({
   // 打开对比弹窗默认展示压缩后结果，便于先看效果
   const [view, setView] = useState<'before' | 'after'>('after');
   const showBefore = view === 'before';
-  const src = showBefore ? before : after;
-  const alt = showBefore ? beforeAlt ?? beforeLabel : afterAlt ?? afterLabel;
   const size = showBefore ? beforeSize : afterSize;
-
-  // 预加载另一张图，保证切换时立即显示
-  useEffect(() => {
-    const next = new Image();
-    next.src = showBefore ? after : before;
-  }, [showBefore, before, after]);
 
   // 仅当压缩后体积确实更小时展示节省百分比
   const saveRate = useMemo(() => {
@@ -172,7 +165,18 @@ export default function SwitchCompare({
           </svg>
         </button>
         <div className={styles.viewport}>
-          <CompareFrame key={src} src={src} alt={alt} background={background} />
+          <CompareFrame
+            className={showBefore ? undefined : styles.panelGhost}
+            src={before}
+            alt={beforeAlt ?? beforeLabel}
+            background={background}
+          />
+          <CompareFrame
+            className={showBefore ? styles.panelGhost : undefined}
+            src={after}
+            alt={afterAlt ?? afterLabel}
+            background={background}
+          />
           <div className={styles.chip} aria-hidden="true">
             <b>{showBefore ? beforeLabel : afterLabel}</b>
             {size && <span>{size}</span>}
