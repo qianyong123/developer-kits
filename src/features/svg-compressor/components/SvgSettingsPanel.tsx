@@ -111,6 +111,41 @@ export default function SvgSettingsPanel({
             </div>
           </div>
 
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <span className={styles.label}>{messages.svg.nameRule}</span>
+              <HelpTip text={messages.svg.settingsHelp.nameRule} />
+            </div>
+            <div className={styles.nameRuleRow}>
+              <div className={styles.nameInputWrap}>
+                <label className={styles.label} htmlFor="svg-name-prefix">
+                  {messages.svg.namePrefix}
+                </label>
+                <input
+                  id="svg-name-prefix"
+                  type="text"
+                  maxLength={32}
+                  placeholder={messages.svg.namePrefixPlaceholder}
+                  value={settings.namePrefix}
+                  onChange={(e) => set({ namePrefix: e.target.value })}
+                />
+              </div>
+              <div className={styles.nameInputWrap}>
+                <label className={styles.label} htmlFor="svg-name-suffix">
+                  {messages.svg.nameSuffix}
+                </label>
+                <input
+                  id="svg-name-suffix"
+                  type="text"
+                  maxLength={32}
+                  placeholder={messages.svg.nameSuffixPlaceholder}
+                  value={settings.nameSuffix}
+                  onChange={(e) => set({ nameSuffix: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
           <SaveCard
             label={messages.svg.estimatedSave}
             savedValue={formatBytes(Math.max(0, saved))}

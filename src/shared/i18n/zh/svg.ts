@@ -17,6 +17,11 @@ export const svgMessages = {
   format: '输出格式',
   formatSvg: 'SVG',
   formatSvgz: 'SVGZ（gzip）',
+  nameRule: '文件名规则',
+  namePrefix: '前缀',
+  nameSuffix: '后缀',
+  namePrefixPlaceholder: '如 min-',
+  nameSuffixPlaceholder: '如 -compressed',
   estimatedSave: '预计节省',
   saveRate: '压缩率',
   settingsHelp: {
@@ -24,6 +29,7 @@ export const svgMessages = {
       '高保真：仅做结构清理，坐标精度保留 3 位小数；平衡（推荐）：精度 2 位 + 多轮优化；极限：尝试路径复用等进阶优化并自动选取更小结果。三档均不简化几何形状，渲染结果保持一致。',
     format:
       'SVG：优化后的矢量文本；SVGZ：再经 gzip 压缩，适合存储与传输（网页中浏览器通常已自动 gzip，一般无需 SVGZ）。',
+    nameRule: '输出文件按“前缀 + 原文件名 + 后缀”命名，避免与原文件同名；前缀与后缀都留空时保持原文件名（格式转换仅更换扩展名）。默认后缀 -compressed。',
   },
   recompress: '重新压缩',
   downloadAll: '下载全部 (ZIP)',

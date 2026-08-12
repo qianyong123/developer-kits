@@ -570,12 +570,21 @@ try {
   const zipName = await downloadAllZip(page, zipPath);
   const zipEntries = unzipSync(readFileSync(zipPath));
   const entryNames = Object.keys(zipEntries).sort();
-  const expectedNames = [...supportedNames, EXTRA[0].name, 'exif-test.jpg'].sort();
+  // 默认文件名规则：原名（去扩展名）+ -compressed + 扩展名
+  const applyNameRule = (name) => {
+    const dot = name.lastIndexOf('.');
+    const base = dot > 0 ? name.slice(0, dot) : name;
+    const ext = dot > 0 ? name.slice(dot) : '';
+    return `${base}-compressed${ext}`;
+  };
+  const expectedNames = [...supportedNames, EXTRA[0].name, 'exif-test.jpg']
+    .map(applyNameRule)
+    .sort();
   const nameOk =
     entryNames.length === expectedNames.length &&
     expectedNames.every((n) => entryNames.includes(n));
   ok(
-    'ZIP 打包成功，文件名与输入一致',
+    'ZIP 打包成功，默认文件名规则生效（-compressed 后缀）',
     zipName === 'compressed-images.zip' && nameOk,
     `zip=${zipName} entries=${entryNames.join(',')}`,
   );

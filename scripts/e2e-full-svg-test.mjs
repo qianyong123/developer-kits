@@ -269,16 +269,23 @@ try {
   const entries = unzipSync(readFileSync(zipPath));
   const entryNames = Object.keys(entries).sort();
   let zipOk = true;
+  // 默认文件名规则：原名（去扩展名）+ -compressed + 扩展名
+  const applyNameRule = (name) => {
+    const dot = name.lastIndexOf('.');
+    const base = dot > 0 ? name.slice(0, dot) : name;
+    const ext = dot > 0 ? name.slice(dot) : '';
+    return `${base}-compressed${ext}`;
+  };
   const expectedNames = [];
   for (const f of BATCH) {
     const d = await cardData(page, f.name);
     const kept = /原文件已是最优/.test(d?.note ?? '');
     if (kept) {
-      expectedNames.push(f.name); // 保留原文件 → 原格式原名
+      expectedNames.push(applyNameRule(f.name)); // 保留原文件 → 仍按命名规则输出
     } else if (/\.svgz$/i.test(f.name)) {
-      expectedNames.push(f.name); // svgz 输入 + svgz 输出 → 原名
+      expectedNames.push(applyNameRule(f.name)); // svgz 输入 + svgz 输出 → 按命名规则输出
     } else {
-      expectedNames.push(f.name.replace(/\.svg$/i, '.svgz'));
+      expectedNames.push(applyNameRule(f.name.replace(/\.svg$/i, '.svgz')));
     }
   }
   // 与 zip.ts uniqueName 相同的重名去重规则

@@ -6,6 +6,10 @@ export type SvgOutputFormat = 'svg' | 'svgz';
 export interface SvgSettings {
   preset: SvgPreset;
   format: SvgOutputFormat;
+  /** 输出文件名前缀（留空则不添加） */
+  namePrefix: string;
+  /** 输出文件名后缀（默认 -compressed，避免与原文件同名） */
+  nameSuffix: string;
 }
 
 export type SvgItemStatus = 'pending' | 'processing' | 'done' | 'error';

@@ -6,6 +6,10 @@ export interface CompressSettings {
   format: FormatOption;
   keepMetadata: boolean;
   maxEdge: number;
+  /** 输出文件名前缀（留空则不添加） */
+  namePrefix: string;
+  /** 输出文件名后缀（默认 -compressed，避免与原文件同名） */
+  nameSuffix: string;
 }
 
 export interface CompressResult {

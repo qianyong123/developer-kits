@@ -207,6 +207,41 @@ export default function SettingsPanel({
             </div>
           </div>
 
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <span className={styles.label}>{messages.image.nameRule}</span>
+              <HelpTip text={messages.image.settingsHelp.nameRule} />
+            </div>
+            <div className={styles.nameRuleRow}>
+              <div className={styles.nameInputWrap}>
+                <label className={styles.label} htmlFor="name-prefix">
+                  {messages.image.namePrefix}
+                </label>
+                <input
+                  id="name-prefix"
+                  type="text"
+                  maxLength={32}
+                  placeholder={messages.image.namePrefixPlaceholder}
+                  value={settings.namePrefix}
+                  onChange={(e) => set({ namePrefix: e.target.value })}
+                />
+              </div>
+              <div className={styles.nameInputWrap}>
+                <label className={styles.label} htmlFor="name-suffix">
+                  {messages.image.nameSuffix}
+                </label>
+                <input
+                  id="name-suffix"
+                  type="text"
+                  maxLength={32}
+                  placeholder={messages.image.nameSuffixPlaceholder}
+                  value={settings.nameSuffix}
+                  onChange={(e) => set({ nameSuffix: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
           <SaveCard
             label={messages.image.estimatedSave}
             savedValue={formatBytes(Math.max(0, saved))}

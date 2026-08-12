@@ -15,7 +15,7 @@ import SvgCard from '@/features/svg-compressor/components/SvgCard';
 import SvgCompareDialog from '@/features/svg-compressor/components/SvgCompareDialog';
 import SvgSettingsPanel from '@/features/svg-compressor/components/SvgSettingsPanel';
 import { disposeWorkerPool, optimizeSvg } from '@/features/svg-compressor/lib/optimize';
-import { useSvgSettingsStore } from '@/features/svg-compressor/stores';
+import { svgSettingsKey, useSvgSettingsStore } from '@/features/svg-compressor/stores';
 import {
   analyzeEmbeddedImages,
   isSvgFile,
@@ -134,15 +134,16 @@ export default function SvgCompressorPage() {
     },
   });
 
-  // 设置变更：全部重新压缩（防抖）
+  // 设置变更：全部重新压缩（防抖）；文件名前缀/后缀不影响压缩结果，不触发重跑
   useDebouncedEffect(() => {
     recompressAll();
-  }, [JSON.stringify(settings)], 300);
+  }, [svgSettingsKey(settings)], 300);
 
   const downloadOne = useCallback((item: SvgItem) => {
     if (!item.result) return;
     const url = URL.createObjectURL(item.result.blob);
-    downloadUrl(url, svgOutputName(item.file.name, item.result.format));
+    const { namePrefix, nameSuffix } = settingsRef.current;
+    downloadUrl(url, svgOutputName(item.file.name, item.result.format, namePrefix, nameSuffix));
     setTimeout(() => URL.revokeObjectURL(url), 30_000);
   }, []);
 
@@ -150,11 +151,12 @@ export default function SvgCompressorPage() {
     const done = itemsRef.current.filter((it) => it.result);
     if (done.length === 0) return;
 
+    const { namePrefix, nameSuffix } = settingsRef.current;
     setZipping(true);
     try {
       const entries = await Promise.all(
         done.map(async (it) => ({
-          name: svgOutputName(it.file.name, it.result!.format),
+          name: svgOutputName(it.file.name, it.result!.format, namePrefix, nameSuffix),
           blob: it.result!.blob,
         })),
       );

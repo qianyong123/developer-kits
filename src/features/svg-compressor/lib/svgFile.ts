@@ -47,12 +47,21 @@ export function gzipSvgText(text: string): Uint8Array<ArrayBuffer> {
   return gzipSync(new TextEncoder().encode(text), { level: 9 }) as Uint8Array<ArrayBuffer>;
 }
 
-/** 输出文件名：与输入保持一致，仅在格式转换时更换扩展名（svg → svgz / svgz → svg）。 */
-export function svgOutputName(originalName: string, format: SvgOutputFormat): string {
+/**
+ * 输出文件名。
+ * 未设置前缀/后缀（均留空）时：与输入保持一致，仅在格式转换时更换扩展名（svg → svgz / svgz → svg）；
+ * 设置了前缀/后缀时：按「前缀 + 原名（去扩展名） + 后缀 + 新扩展名」生成，避免与原文件同名。
+ */
+export function svgOutputName(
+  originalName: string,
+  format: SvgOutputFormat,
+  prefix = '',
+  suffix = '',
+): string {
   const isSvgz = /\.svgz$/i.test(originalName);
-  if ((isSvgz && format === 'svgz') || (!isSvgz && format === 'svg')) {
+  if (prefix === '' && suffix === '' && ((isSvgz && format === 'svgz') || (!isSvgz && format === 'svg'))) {
     return originalName;
   }
   const base = originalName.replace(/\.svgz?$/i, '');
-  return `${base}.${format}`;
+  return `${prefix}${base}${suffix}.${format}`;
 }

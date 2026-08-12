@@ -177,3 +177,37 @@
     display: none;
   }
 }
+
+.nameRuleRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.nameInputWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.nameInputWrap input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  width: 100%;
+  font-size: 13px;
+}
+
+.nameInputWrap input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .nameRuleRow {
+    grid-template-columns: 1fr;
+  }
+}

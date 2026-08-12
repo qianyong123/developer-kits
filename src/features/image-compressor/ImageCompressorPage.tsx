@@ -17,6 +17,7 @@ import { compressImage } from '@/features/image-compressor/lib/compress';
 import { outputFileName } from '@/features/image-compressor/lib/filenames';
 import {
   DEFAULT_IMAGE_SETTINGS,
+  compressSettingsKey,
   useImageSettingsStore,
 } from '@/features/image-compressor/stores';
 import {
@@ -178,25 +179,30 @@ export default function ImageCompressorPage() {
     revokeResult: (result) => URL.revokeObjectURL(result.url),
   });
 
-  // 设置变更：全部重新压缩（防抖）
+  // 设置变更：全部重新压缩（防抖）；文件名前缀/后缀不影响压缩结果，不触发重跑
   useDebouncedEffect(() => {
     recompressAll();
-  }, [JSON.stringify(settings)], 300);
+  }, [compressSettingsKey(settings)], 300);
 
   const downloadOne = useCallback((item: ImageItem) => {
     if (!item.result) return;
-    downloadUrl(item.result.url, outputFileName(item.file.name, item.result.format));
+    const { namePrefix, nameSuffix } = settingsRef.current;
+    downloadUrl(
+      item.result.url,
+      outputFileName(item.file.name, item.result.format, namePrefix, nameSuffix),
+    );
   }, []);
 
   const downloadAll = useCallback(async () => {
     const done = itemsRef.current.filter((it) => it.result);
     if (done.length === 0) return;
 
+    const { namePrefix, nameSuffix } = settingsRef.current;
     setZipping(true);
     try {
       const entries = await Promise.all(
         done.map(async (it) => ({
-          name: outputFileName(it.file.name, it.result!.format),
+          name: outputFileName(it.file.name, it.result!.format, namePrefix, nameSuffix),
           blob: it.result!.blob,
         })),
       );
