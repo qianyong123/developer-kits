@@ -95,7 +95,8 @@ export default function SwitchCompare({
   beforeAlt,
   afterAlt,
 }: Props) {
-  const [view, setView] = useState<'before' | 'after'>('before');
+  // 打开对比弹窗默认展示压缩后结果，便于先看效果
+  const [view, setView] = useState<'before' | 'after'>('after');
   const showBefore = view === 'before';
   const src = showBefore ? before : after;
   const alt = showBefore ? beforeAlt ?? beforeLabel : afterAlt ?? afterLabel;
