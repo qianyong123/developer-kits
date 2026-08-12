@@ -1,7 +1,7 @@
 import { messages } from '@/shared/i18n/zh';
 import { formatBytes } from '@/shared/lib/format';
 import type { PreviewBg } from '@/shared/lib/hasTransparency';
-import SideBySideCompare from '@/shared/components/SideBySideCompare/SideBySideCompare';
+import SwitchCompare from '@/shared/components/SwitchCompare/SwitchCompare';
 import type { ImageItem } from '@/features/image-compressor/lib/types';
 import styles from '@/features/image-compressor/components/CompareDialog.module.css';
 
@@ -26,13 +26,15 @@ export default function CompareDialog({
           </button>
         </div>
 
-        <SideBySideCompare
+        <SwitchCompare
           before={item.originalUrl}
           after={item.result.url}
           beforeLabel={messages.image.original}
           afterLabel={messages.image.compressed}
           beforeSize={formatBytes(item.originalSize)}
           afterSize={formatBytes(item.result.size)}
+          beforeBytes={item.originalSize}
+          afterBytes={item.result.size}
           background={previewBg}
         />
       </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { messages } from '@/shared/i18n/zh';
-import SideBySideCompare from '@/shared/components/SideBySideCompare/SideBySideCompare';
+import SwitchCompare from '@/shared/components/SwitchCompare/SwitchCompare';
 import { formatBytes } from '@/shared/lib/format';
 import type { PreviewBg } from '@/shared/lib/hasTransparency';
 import type { SvgItem } from '@/features/svg-compressor/lib/types';
@@ -60,13 +60,15 @@ export default function SvgCompareDialog({
         </div>
 
         {tab === 'visual' ? (
-          <SideBySideCompare
+          <SwitchCompare
             before={item.originalUrl}
             after={result.previewUrl}
             beforeLabel={messages.svg.original}
             afterLabel={messages.svg.compressed}
             beforeSize={formatBytes(item.originalSize)}
             afterSize={formatBytes(result.size)}
+            beforeBytes={item.originalSize}
+            afterBytes={result.size}
             background={previewBg}
           />
         ) : (
