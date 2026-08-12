@@ -1,6 +1,6 @@
 export const appMessages = {
-  brand: '工具箱',
-  brandEn: 'ToolBox',
+  brand: '砺',
+  brandEn: 'Hone',
   toolset: '工具集',
   navImage: '图片压缩',
   navSvg: 'SVG 压缩',

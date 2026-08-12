@@ -197,7 +197,7 @@ describe('工具函数', () => {
 
   it('jsonToTsTypes 生成嵌套接口', () => {
     const types = jsonToTsTypes({
-      name: '开发工具包',
+      name: '砺',
       count: 3,
       active: true,
       stats: { downloads: 1234 },

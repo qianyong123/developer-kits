@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "工具箱：图片压缩、JSON 工具等，全部在浏览器本地处理。",
+  "description": "砺（Hone）：图片压缩、SVG 压缩、JSON 工具等，全部在浏览器本地处理。",
   "engines": {
     "node": ">=18"
   },

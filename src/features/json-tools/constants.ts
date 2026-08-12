@@ -22,7 +22,7 @@ export const PROCESS_ACTION_LABELS: Record<ProcessAction, string> = {
 /** 示例数据：类型转换 / 格式化使用 */
 export const SAMPLE = JSON.stringify(
   {
-    name: '开发工具包',
+    name: '砺',
     version: '0.1.0',
     tools: ['图片压缩', 'SVG 压缩', 'JSON 工具'],
     stats: { downloads: 1234, rating: 4.8, active: true },
@@ -35,7 +35,7 @@ export const SAMPLE = JSON.stringify(
 /** 对比示例：修改前 */
 export const SAMPLE_BEFORE = JSON.stringify(
   {
-    project: '开发工具包',
+    project: '砺',
     version: '0.1.0',
     members: [
       { name: '张三', role: '前端', active: true },
@@ -56,7 +56,7 @@ export const SAMPLE_BEFORE = JSON.stringify(
 /** 对比示例：修改后 */
 export const SAMPLE_AFTER = JSON.stringify(
   {
-    project: '开发工具包',
+    project: '砺',
     version: '0.2.0',
     members: [
       { name: '张三', role: '前端', active: true },
