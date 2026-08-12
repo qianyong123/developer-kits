@@ -216,12 +216,40 @@
 
 @media (max-width: 640px) {
   .stage {
-    height: clamp(220px, 52vh, 300px);
+    position: relative;
+    gap: 0;
+    height: auto;
+  }
+
+  .viewport {
+    height: auto;
+    min-height: 200px;
+  }
+
+  .panel {
+    height: auto;
+  }
+
+  .frame {
+    padding: 8px;
   }
 
   .nav {
-    width: 30px;
-    height: 30px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 32px;
+    height: 32px;
+    background: var(--overlay-chip);
+  }
+
+  .nav:first-child {
+    left: 8px;
+  }
+
+  .nav:last-child {
+    right: 8px;
   }
 
   .tab,

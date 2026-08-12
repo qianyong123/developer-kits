@@ -49,14 +49,20 @@ function CompareFrame({
     const img = e.currentTarget;
     const panel = panelRef.current;
     if (!panel || !img.naturalWidth || !img.naturalHeight) return;
-    const maxW = panel.clientWidth - FRAME_PADDING * 2;
     const isMobile = window.matchMedia('(max-width: 900px)').matches;
+    // 按实际内边距计算可用宽度，保证图片撑满预览区
+    const frameEl = panel.firstElementChild as HTMLElement | null;
+    const framePad = frameEl ? Number.parseFloat(getComputedStyle(frameEl).paddingLeft) : FRAME_PADDING;
+    const maxW = panel.clientWidth - framePad * 2;
     const maxH =
       (isMobile
         ? window.innerHeight * 0.9
         : Math.min(window.innerHeight * 0.6, MAX_HEIGHT)) -
       FRAME_PADDING * 2;
-    const scale = Math.min(1, maxW / img.naturalWidth, maxH / img.naturalHeight);
+    // 移动端撑满预览区宽度（允许放大），桌面端只缩小不放大
+    const scale = isMobile
+      ? Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight)
+      : Math.min(1, maxW / img.naturalWidth, maxH / img.naturalHeight);
     setDims({
       w: Math.round(img.naturalWidth * scale),
       h: Math.round(img.naturalHeight * scale),
