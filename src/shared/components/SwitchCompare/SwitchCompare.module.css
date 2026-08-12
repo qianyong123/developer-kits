@@ -44,8 +44,8 @@
 .stage {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: clamp(260px, 44vh, 420px);
+  gap: 8px;
+  height: clamp(300px, 70vh, 560px);
 }
 
 .nav {

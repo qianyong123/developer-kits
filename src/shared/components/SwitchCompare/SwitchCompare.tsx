@@ -10,7 +10,9 @@ import { ratioPercent } from '@/shared/lib/format';
 import styles from '@/shared/components/SwitchCompare/SwitchCompare.module.css';
 
 const FRAME_PADDING = 14;
-const MAX_HEIGHT = 420;
+const MAX_HEIGHT = 560;
+/** 小图标在 PC 端允许的最大放大倍数（避免过度放大变模糊） */
+const MAX_UPSCALE = 3;
 
 interface Props {
   before: string;
@@ -58,12 +60,12 @@ function CompareFrame({
     const maxH =
       (isMobile
         ? window.innerHeight * 0.9
-        : Math.min(window.innerHeight * 0.6, MAX_HEIGHT)) -
+        : Math.min(window.innerHeight * 0.7, MAX_HEIGHT)) -
       FRAME_PADDING * 2;
-    // 移动端撑满预览区宽度（允许放大），桌面端只缩小不放大
+    // 移动端撑满预览区宽度（允许放大）；桌面端小图标允许适度放大，大图只缩小
     const scale = isMobile
       ? Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight)
-      : Math.min(1, maxW / img.naturalWidth, maxH / img.naturalHeight);
+      : Math.min(MAX_UPSCALE, maxW / img.naturalWidth, maxH / img.naturalHeight);
     setDims({
       w: Math.round(img.naturalWidth * scale),
       h: Math.round(img.naturalHeight * scale),
