@@ -454,7 +454,8 @@ try {
 
   // ---- 10. 格式转换 PNG（有损量化，索引色 PLTE） ----
   await clickSegment(page, 'PNG');
-  await waitBusyThenDone(page, 240_000);
+  // 大图量化耗时较长（本机实测约 5 分钟），超时放宽到 8 分钟
+  await waitBusyThenDone(page, 480_000);
   let pngOk = true;
   const pngDetails = [];
   for (const n of supportedNames) {
@@ -571,11 +572,13 @@ try {
   const zipEntries = unzipSync(readFileSync(zipPath));
   const entryNames = Object.keys(zipEntries).sort();
   // 默认文件名规则：原名（去扩展名）+ -compressed + 扩展名
+  // 扩展名按输出格式归一化：jpeg 输入输出统一为 .jpg（与 encoders.EXT 一致）
   const applyNameRule = (name) => {
     const dot = name.lastIndexOf('.');
     const base = dot > 0 ? name.slice(0, dot) : name;
-    const ext = dot > 0 ? name.slice(dot) : '';
-    return `${base}-compressed${ext}`;
+    let ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
+    if (ext === 'jpeg') ext = 'jpg';
+    return `${base}-compressed.${ext}`;
   };
   const expectedNames = [...supportedNames, EXTRA[0].name, 'exif-test.jpg']
     .map(applyNameRule)
