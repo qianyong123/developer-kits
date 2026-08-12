@@ -1,6 +1,7 @@
 import { messages } from '@/shared/i18n/zh';
 import { ChevronDownIcon } from '@/shared/components/Icons';
 import HelpTip from '@/shared/components/HelpTip/HelpTip';
+import NameRuleField from '@/shared/components/NameRuleField/NameRuleField';
 import { formatBytes, ratioPercent } from '@/shared/lib/format';
 import SaveCard from '@/shared/components/SaveCard/SaveCard';
 import type { FormatOption } from '@/features/image-compressor/lib/encoders';
@@ -207,40 +208,11 @@ export default function SettingsPanel({
             </div>
           </div>
 
-          <div className={styles.field}>
-            <div className={styles.labelRow}>
-              <span className={styles.label}>{messages.image.nameRule}</span>
-              <HelpTip text={messages.image.settingsHelp.nameRule} />
-            </div>
-            <div className={styles.nameRuleRow}>
-              <div className={styles.nameInputWrap}>
-                <label className={styles.label} htmlFor="name-prefix">
-                  {messages.image.namePrefix}
-                </label>
-                <input
-                  id="name-prefix"
-                  type="text"
-                  maxLength={32}
-                  placeholder={messages.image.namePrefixPlaceholder}
-                  value={settings.namePrefix}
-                  onChange={(e) => set({ namePrefix: e.target.value })}
-                />
-              </div>
-              <div className={styles.nameInputWrap}>
-                <label className={styles.label} htmlFor="name-suffix">
-                  {messages.image.nameSuffix}
-                </label>
-                <input
-                  id="name-suffix"
-                  type="text"
-                  maxLength={32}
-                  placeholder={messages.image.nameSuffixPlaceholder}
-                  value={settings.nameSuffix}
-                  onChange={(e) => set({ nameSuffix: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
+          <NameRuleField
+            idPrefix="image"
+            value={{ prefix: settings.namePrefix, suffix: settings.nameSuffix }}
+            onChange={(next) => set({ namePrefix: next.prefix, nameSuffix: next.suffix })}
+          />
 
           <SaveCard
             label={messages.image.estimatedSave}

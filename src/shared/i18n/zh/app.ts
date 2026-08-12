@@ -12,4 +12,10 @@ export const appMessages = {
   backToTop: '回到顶部',
   errorTitle: '页面出错了',
   errorRetry: '重试',
+  nameRule: '文件名规则',
+  namePrefix: '前缀',
+  nameSuffix: '后缀',
+  namePrefixPlaceholder: '如 min-',
+  nameSuffixPlaceholder: '如 -compressed',
+  nameRuleHelp: '输出文件按“前缀 + 原文件名 + 后缀”命名，避免与原文件同名；前缀与后缀都留空时保持原文件名（格式转换仅更换扩展名）。默认后缀 -compressed。',
 } as const;
