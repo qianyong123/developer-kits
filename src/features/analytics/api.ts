@@ -1,5 +1,5 @@
 import { callCloudFunction } from '@/shared/lib/cloudbase';
-import type { PageStat } from '@/features/analytics/types';
+import type { AnalyticsDimension, PageStat, TrendStat } from '@/features/analytics/types';
 
 /** 上报一次页面访问（无需登录）。 */
 export async function trackVisit(path: string, visitorKey: string): Promise<void> {
@@ -14,4 +14,18 @@ export async function fetchStats(startDate?: string, endDate?: string): Promise<
     payload.endDate = endDate;
   }
   return callCloudFunction<PageStat[]>('analytics', payload);
+}
+
+/** 拉取按期间（日/周/月/年）聚合的访问统计（公开）。 */
+export async function fetchTrend(
+  dimension: AnalyticsDimension,
+  startDate?: string,
+  endDate?: string,
+): Promise<TrendStat[]> {
+  const payload: Record<string, unknown> = { action: 'getStats', dimension };
+  if (startDate && endDate) {
+    payload.startDate = startDate;
+    payload.endDate = endDate;
+  }
+  return callCloudFunction<TrendStat[]>('analytics', payload);
 }

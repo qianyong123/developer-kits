@@ -12,6 +12,11 @@ export const analyticsMessages = {
   endLabel: '结束日期',
   query: '查询',
   clear: '清空',
+  dayTab: '日',
+  weekTab: '周',
+  monthTab: '月',
+  yearTab: '年',
+  periodLabel: '期间',
   dateRangeHint: '开始和结束日期需同时选择',
   dateRangeInvalid: '开始日期不能晚于结束日期',
 } as const;

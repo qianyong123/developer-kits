@@ -1,5 +1,5 @@
 .page {
-  max-width: 720px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
@@ -67,21 +67,67 @@
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.statCard {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.summary {
+  display: flex;
+  gap: 24px;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summaryValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-strong);
+  line-height: 1.2;
+}
+
+.summaryLabel {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
 .empty {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .table th,
 .table td {
-  padding: 10px 12px;
+  padding: 7px 8px;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
@@ -89,7 +135,7 @@
 .table th {
   color: var(--text-secondary);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .path {
@@ -97,6 +143,8 @@
   color: var(--text-strong);
 }
 
-.muted {
-  color: var(--text-faint);
+@media (max-width: 700px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,21 +1,18 @@
 import { useEffect, useState } from 'react';
 import { messages } from '@/shared/i18n/zh';
 import { Button } from '@/shared/components/Button/Button';
-import { fetchStats } from '@/features/analytics/api';
-import type { PageStat } from '@/features/analytics/types';
+import { fetchTrend } from '@/features/analytics/api';
+import type { AnalyticsDimension, TrendStat } from '@/features/analytics/types';
 import styles from '@/features/analytics/AnalyticsPage.module.css';
 
-function formatTime(iso?: string): string {
-  if (!iso) {
-    return '--';
-  }
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return '--';
-  }
-  // 统一显示北京时间，避免不同时区浏览器看到不同时间
-  return date.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-}
+type TrendMap = Record<AnalyticsDimension, TrendStat[] | null>;
+
+const DIMENSIONS: { key: AnalyticsDimension; label: string }[] = [
+  { key: 'day', label: messages.analytics.dayTab },
+  { key: 'week', label: messages.analytics.weekTab },
+  { key: 'month', label: messages.analytics.monthTab },
+  { key: 'year', label: messages.analytics.yearTab },
+];
 
 /** 取日期字符串的次日（本地日期运算，避免时区干扰）。 */
 function dayAfter(dateStr: string): string {
@@ -34,7 +31,7 @@ function toBeijingRange(startDate: string, endDate: string): { start: string; en
 }
 
 export default function AnalyticsPage() {
-  const [stats, setStats] = useState<PageStat[] | null>(null);
+  const [trends, setTrends] = useState<TrendMap>({ day: null, week: null, month: null, year: null });
   const [error, setError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -42,11 +39,21 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchStats(range.start, range.end)
-      .then((rows) => {
-        if (!cancelled) {
-          setStats(rows);
+    setError(null);
+    Promise.all(
+      DIMENSIONS.map(({ key }) =>
+        fetchTrend(key, range.start, range.end).then((rows) => [key, rows] as const),
+      ),
+    )
+      .then((results) => {
+        if (cancelled) {
+          return;
         }
+        const next: TrendMap = { day: null, week: null, month: null, year: null };
+        for (const [dim, rows] of results) {
+          next[dim] = rows;
+        }
+        setTrends(next);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -112,30 +119,55 @@ export default function AnalyticsPage() {
             {messages.analytics.clear}
           </Button>
         </div>
-        {stats === null && !error && <p>{messages.analytics.loading}</p>}
-        {stats && stats.length === 0 && <p className={styles.empty}>{messages.analytics.empty}</p>}
-        {stats && stats.length > 0 && (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>{messages.analytics.pathLabel}</th>
-                <th>{messages.analytics.pvLabel}</th>
-                <th>{messages.analytics.uvLabel}</th>
-                <th>{messages.analytics.lastLabel}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.map((row) => (
-                <tr key={row.path}>
-                  <td className={styles.path}>{row.path}</td>
-                  <td>{row.pv}</td>
-                  <td>{row.uv}</td>
-                  <td className={styles.muted}>{formatTime(row.last_viewed)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+
+        <div className={styles.cards}>
+          {DIMENSIONS.map(({ key, label }) => {
+            const rows = trends[key];
+            const latest = rows && rows.length > 0 ? rows[0] : null;
+            const top = rows ? rows.slice(0, 5) : [];
+            return (
+              <section key={key} className={styles.statCard}>
+                <h2 className={styles.cardTitle}>{label}</h2>
+                {rows === null ? (
+                  <p className={styles.empty}>{messages.analytics.loading}</p>
+                ) : rows.length === 0 ? (
+                  <p className={styles.empty}>{messages.analytics.empty}</p>
+                ) : (
+                  <>
+                    <div className={styles.summary}>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryValue}>{latest?.pv}</span>
+                        <span className={styles.summaryLabel}>{messages.analytics.pvLabel}</span>
+                      </div>
+                      <div className={styles.summaryItem}>
+                        <span className={styles.summaryValue}>{latest?.uv}</span>
+                        <span className={styles.summaryLabel}>{messages.analytics.uvLabel}</span>
+                      </div>
+                    </div>
+                    <table className={styles.table}>
+                      <thead>
+                        <tr>
+                          <th>{messages.analytics.periodLabel}</th>
+                          <th>{messages.analytics.pvLabel}</th>
+                          <th>{messages.analytics.uvLabel}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {top.map((row) => (
+                          <tr key={row.period}>
+                            <td className={styles.path}>{row.period}</td>
+                            <td>{row.pv}</td>
+                            <td>{row.uv}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+              </section>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
