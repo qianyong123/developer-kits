@@ -59,6 +59,24 @@ export function CodeIcon(props: IconProps) {
   );
 }
 
+export function UserIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20.5c0-3.6 3.4-5.5 7.5-5.5s7.5 1.9 7.5 5.5" />
+    </svg>
+  );
+}
+
+export function ChartIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 20v-8M12 20V6M19 20v-5" />
+      <path d="M3 20h18" />
+    </svg>
+  );
+}
+
 export function BracesIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

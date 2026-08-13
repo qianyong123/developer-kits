@@ -1,4 +1,6 @@
 import { appMessages } from '@/shared/i18n/zh/app';
+import { analyticsMessages } from '@/shared/i18n/zh/analytics';
+import { authMessages } from '@/shared/i18n/zh/auth';
 import { imageMessages } from '@/shared/i18n/zh/image';
 import { jsonMessages } from '@/shared/i18n/zh/json';
 import { svgMessages } from '@/shared/i18n/zh/svg';
@@ -12,6 +14,8 @@ export const sharedMessages = {
 /** 聚合消息对象：既有代码仍通过 messages.image.xxx 访问，类型保持字面量收窄。 */
 export const messages = {
   app: appMessages,
+  analytics: analyticsMessages,
+  auth: authMessages,
   image: imageMessages,
   svg: svgMessages,
   json: jsonMessages,

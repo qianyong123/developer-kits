@@ -1,5 +1,33 @@
 {
   "envId": "kits-dev-d4g4yxxnw8e41a263",
+  "functionRoot": "cloudfunctions",
+  "functions": [
+    {
+      "name": "auth",
+      "handler": "index.main",
+      "runtime": "Nodejs18.15",
+      "timeout": 10,
+      "memorySize": 256,
+      "installDependency": true,
+      "envVariables": {
+        "ENV_ID": "kits-dev-d4g4yxxnw8e41a263"
+      },
+      "ignore": ["node_modules/**", ".git/**", "**/*.test.js"]
+    },
+    {
+      "name": "analytics",
+      "handler": "index.main",
+      "runtime": "Nodejs18.15",
+      "timeout": 10,
+      "memorySize": 256,
+      "installDependency": true,
+      "envVariables": {
+        "ENV_ID": "kits-dev-d4g4yxxnw8e41a263",
+        "ADMIN_UID": "6"
+      },
+      "ignore": ["node_modules/**", ".git/**", "**/*.test.js"]
+    }
+  ],
   "app": {
     "serviceName": "developer-kits",
     "framework": "vite",

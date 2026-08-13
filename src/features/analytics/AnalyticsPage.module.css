@@ -1,0 +1,62 @@
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+.empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.path {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--text-strong);
+}
+
+.muted {
+  color: var(--text-faint);
+}
