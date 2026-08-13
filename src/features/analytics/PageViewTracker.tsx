@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { getVisitorKey } from '@/features/analytics/visitor';
+import { getVisitorKey, isLocalHost } from '@/features/analytics/visitor';
 
 /**
  * 路由埋点：页面切换时上报访问。
@@ -12,6 +12,9 @@ export default function PageViewTracker() {
   const location = useLocation();
 
   useEffect(() => {
+    if (isLocalHost()) {
+      return;
+    }
     let cancelled = false;
     const visitorKey = getVisitorKey();
     void import('@/features/analytics/api')
