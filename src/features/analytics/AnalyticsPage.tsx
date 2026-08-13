@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { messages } from '@/shared/i18n/zh';
-import { useAuthStore } from '@/features/auth/store';
 import { fetchStats } from '@/features/analytics/api';
 import type { PageStat } from '@/features/analytics/types';
 import styles from '@/features/analytics/AnalyticsPage.module.css';
@@ -17,20 +16,12 @@ function formatTime(iso?: string): string {
 }
 
 export default function AnalyticsPage() {
-  const { status, token, initialize } = useAuthStore();
   const [stats, setStats] = useState<PageStat[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void initialize();
-  }, [initialize]);
-
-  useEffect(() => {
-    if (status !== 'authenticated' || !token) {
-      return;
-    }
     let cancelled = false;
-    fetchStats(token)
+    fetchStats()
       .then((rows) => {
         if (!cancelled) {
           setStats(rows);
@@ -44,27 +35,7 @@ export default function AnalyticsPage() {
     return () => {
       cancelled = true;
     };
-  }, [status, token]);
-
-  if (status === 'checking') {
-    return (
-      <div className={styles.page}>
-        <div className={styles.card}>
-          <p>{messages.analytics.loading}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'guest') {
-    return (
-      <div className={styles.page}>
-        <div className={styles.card}>
-          <p>{messages.analytics.needLogin}</p>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   return (
     <div className={styles.page}>

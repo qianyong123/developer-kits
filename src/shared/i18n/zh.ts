@@ -1,6 +1,5 @@
 import { appMessages } from '@/shared/i18n/zh/app';
 import { analyticsMessages } from '@/shared/i18n/zh/analytics';
-import { authMessages } from '@/shared/i18n/zh/auth';
 import { imageMessages } from '@/shared/i18n/zh/image';
 import { jsonMessages } from '@/shared/i18n/zh/json';
 import { svgMessages } from '@/shared/i18n/zh/svg';
@@ -15,7 +14,6 @@ export const sharedMessages = {
 export const messages = {
   app: appMessages,
   analytics: analyticsMessages,
-  auth: authMessages,
   image: imageMessages,
   svg: svgMessages,
   json: jsonMessages,

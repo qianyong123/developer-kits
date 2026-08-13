@@ -5,14 +5,13 @@
  *
  * action:
  * - trackVisit { path, visitorKey } -> null（无需登录，匿名访客也统计）
- * - getStats   { token }            -> [{ path, pv, uv, lastViewedAt }]（需登录）
+ * - getStats                        -> [{ path, pv, uv, lastViewedAt }]（公开）
  *
  * 数据：PostgreSQL page_views 表，通过 PG REST + service_role API Key 访问。
- * 共享模块：lib/authCore（token 校验）、lib/requireAuth、lib/pgClient。
+ * 共享模块：lib/pgClient。
  */
 
 const { pgRequest } = require('./lib/pgClient');
-const { requireAuth } = require('./lib/requireAuth');
 
 function ok(data) {
   return { code: 0, message: 'ok', data };
@@ -79,17 +78,8 @@ exports.main = async (event = {}) => {
     switch (action) {
       case 'trackVisit':
         return await handleTrackVisit(event);
-      case 'getStats': {
-        const { error, payload } = requireAuth(event);
-        if (error) {
-          return error;
-        }
-        // 仅管理员可查看统计（ADMIN_UID 在函数环境变量中配置）
-        if (payload.uid !== process.env.ADMIN_UID) {
-          return fail(403, '无权查看访问统计');
-        }
+      case 'getStats':
         return await handleGetStats();
-      }
       default:
         return fail(1, `未知操作: ${String(action)}`);
     }

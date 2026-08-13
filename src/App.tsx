@@ -6,7 +6,6 @@ import PageViewTracker from '@/features/analytics/PageViewTracker';
 import ErrorBoundary from '@/shared/components/ErrorBoundary/ErrorBoundary';
 import { messages } from '@/shared/i18n/zh';
 
-const AuthPage = lazy(() => import('@/features/auth/AuthPage'));
 const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage'));
 
 export default function App() {
@@ -27,14 +26,6 @@ export default function App() {
                 }
               />
             ))}
-            <Route
-              path="/login"
-              element={
-                <ErrorBoundary key="auth">
-                  <AuthPage />
-                </ErrorBoundary>
-              }
-            />
             <Route
               path="/analytics"
               element={
