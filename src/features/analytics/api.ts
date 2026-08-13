@@ -1,5 +1,10 @@
 import { callCloudFunction } from '@/shared/lib/cloudbase';
-import type { AnalyticsDimension, PageStat, TrendStat } from '@/features/analytics/types';
+import type {
+  AnalyticsDimension,
+  DashboardStats,
+  PageStat,
+  TrendStat,
+} from '@/features/analytics/types';
 
 /** 上报一次页面访问（无需登录）。 */
 export async function trackVisit(path: string, visitorKey: string): Promise<void> {
@@ -28,4 +33,14 @@ export async function fetchTrend(
     payload.endDate = endDate;
   }
   return callCloudFunction<TrendStat[]>('analytics', payload);
+}
+
+/** 一次请求拉取全部维度（同一数据快照，保证总数 >= 各维度）。 */
+export async function fetchDashboard(startDate?: string, endDate?: string): Promise<DashboardStats> {
+  const payload: Record<string, unknown> = { action: 'getDashboard' };
+  if (startDate && endDate) {
+    payload.startDate = startDate;
+    payload.endDate = endDate;
+  }
+  return callCloudFunction<DashboardStats>('analytics', payload);
 }

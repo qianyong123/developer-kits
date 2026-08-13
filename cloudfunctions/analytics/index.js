@@ -5,6 +5,8 @@
  *
  * action:
  * - trackVisit { path, visitorKey } -> null（无需登录，匿名访客也统计）
+ * - getDashboard { startDate?, endDate? }（公开）
+ *     一次快照返回 total/day/week/month/year 五个维度，保证总数 >= 各维度
  * - getStats { startDate?, endDate?, dimension? }（公开）
  *     dimension 为 day/week/month/year/total 时返回按期间聚合 [{ period, pv, uv }]，
  *     否则返回按页面聚合 [{ path, pv, uv, lastViewedAt }]
@@ -113,6 +115,24 @@ function periodKey(viewedAt, dimension) {
   }
 }
 
+/** 按维度聚合原始行，返回按期间倒序的 [{ period, pv, uv }]。 */
+function aggregateByPeriod(rows, dimension) {
+  const byPeriod = new Map();
+  for (const row of rows || []) {
+    const key = periodKey(row.viewed_at, dimension);
+    if (!key) {
+      continue;
+    }
+    const entry = byPeriod.get(key) || { period: key, pv: 0, visitorKeys: new Set() };
+    entry.pv += 1;
+    entry.visitorKeys.add(row.visitor_key);
+    byPeriod.set(key, entry);
+  }
+  return [...byPeriod.values()]
+    .map(({ visitorKeys, ...rest }) => ({ ...rest, uv: visitorKeys.size }))
+    .sort((a, b) => (a.period < b.period ? 1 : -1));
+}
+
 async function handleTrackVisit(event) {
   const { path, visitorKey } = event || {};
   if (!isValidPath(path)) {
@@ -144,21 +164,7 @@ async function handleGetStats(event) {
     `/page_views?select=path,visitor_key,viewed_at&order=viewed_at.desc&limit=10000${filter}`,
   );
   if (dimension) {
-    const byPeriod = new Map();
-    for (const row of rows || []) {
-      const key = periodKey(row.viewed_at, dimension);
-      if (!key) {
-        continue;
-      }
-      const entry = byPeriod.get(key) || { period: key, pv: 0, visitorKeys: new Set() };
-      entry.pv += 1;
-      entry.visitorKeys.add(row.visitor_key);
-      byPeriod.set(key, entry);
-    }
-    const trend = [...byPeriod.values()]
-      .map(({ visitorKeys, ...rest }) => ({ ...rest, uv: visitorKeys.size }))
-      .sort((a, b) => (a.period < b.period ? 1 : -1));
-    return ok(trend);
+    return ok(aggregateByPeriod(rows, dimension));
   }
   const byPath = new Map();
   for (const row of rows || []) {
@@ -181,12 +187,32 @@ async function handleGetStats(event) {
   return ok(stats);
 }
 
+/** 一次快照返回全部维度，避免并行请求看到不同数据。 */
+async function handleGetDashboard(event) {
+  const { error: filterError, filter } = parseDateFilter(event);
+  if (filterError) {
+    return filterError;
+  }
+  const rows = await pgRequest(
+    `/page_views?select=path,visitor_key,viewed_at&order=viewed_at.desc&limit=10000${filter}`,
+  );
+  return ok({
+    total: aggregateByPeriod(rows, 'total'),
+    day: aggregateByPeriod(rows, 'day'),
+    week: aggregateByPeriod(rows, 'week'),
+    month: aggregateByPeriod(rows, 'month'),
+    year: aggregateByPeriod(rows, 'year'),
+  });
+}
+
 exports.main = async (event = {}) => {
   const { action } = event;
   try {
     switch (action) {
       case 'trackVisit':
         return await handleTrackVisit(event);
+      case 'getDashboard':
+        return await handleGetDashboard(event);
       case 'getStats':
         return await handleGetStats(event);
       default:

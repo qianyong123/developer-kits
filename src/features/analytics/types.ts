@@ -14,3 +14,12 @@ export interface TrendStat {
   pv: number;
   uv: number;
 }
+
+/** 统计看板：一次快照返回的五个维度。 */
+export interface DashboardStats {
+  total: TrendStat[];
+  day: TrendStat[];
+  week: TrendStat[];
+  month: TrendStat[];
+  year: TrendStat[];
+}

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { messages } from '@/shared/i18n/zh';
 import { Button } from '@/shared/components/Button/Button';
-import { fetchTrend } from '@/features/analytics/api';
-import type { AnalyticsDimension, TrendStat } from '@/features/analytics/types';
+import { fetchDashboard } from '@/features/analytics/api';
+import type { AnalyticsDimension, DashboardStats, TrendStat } from '@/features/analytics/types';
 import styles from '@/features/analytics/AnalyticsPage.module.css';
 
 type TrendMap = Record<AnalyticsDimension, TrendStat[] | null>;
@@ -47,18 +47,14 @@ export default function AnalyticsPage() {
   useEffect(() => {
     let cancelled = false;
     setError(null);
-    Promise.all(
-      DIMENSIONS.map(({ key }) =>
-        fetchTrend(key, range.start, range.end).then((rows) => [key, rows] as const),
-      ),
-    )
-      .then((results) => {
+    fetchDashboard(range.start, range.end)
+      .then((data: DashboardStats) => {
         if (cancelled) {
           return;
         }
         const next: TrendMap = { total: null, day: null, week: null, month: null, year: null };
-        for (const [dim, rows] of results) {
-          next[dim] = rows;
+        for (const dim of Object.keys(data) as AnalyticsDimension[]) {
+          next[dim] = data[dim];
         }
         setTrends(next);
       })
