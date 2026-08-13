@@ -5,7 +5,7 @@
  *
  * action:
  * - trackVisit { path, visitorKey } -> null（无需登录，匿名访客也统计）
- * - getStats                        -> [{ path, pv, uv, lastViewedAt }]（公开）
+ * - getStats { startDate?, endDate? } -> [{ path, pv, uv, lastViewedAt }]（公开）
  *
  * 数据：PostgreSQL page_views 表，通过 PG REST + service_role API Key 访问。
  * 共享模块：lib/pgClient。
@@ -29,6 +29,27 @@ function isValidVisitorKey(visitorKey) {
   return typeof visitorKey === 'string' && visitorKey.length >= 8 && visitorKey.length <= 64;
 }
 
+/** 解析可选的日期范围过滤；不传则返回全部数据。 */
+function parseDateFilter(event) {
+  const { startDate, endDate } = event || {};
+  if (startDate === undefined && endDate === undefined) {
+    return { filter: '' };
+  }
+  if (
+    typeof startDate !== 'string' ||
+    typeof endDate !== 'string' ||
+    !startDate ||
+    !endDate ||
+    Number.isNaN(new Date(startDate).getTime()) ||
+    Number.isNaN(new Date(endDate).getTime())
+  ) {
+    return { error: fail(1, '日期格式不正确') };
+  }
+  return {
+    filter: `&viewed_at=gte.${encodeURIComponent(startDate)}&viewed_at=lt.${encodeURIComponent(endDate)}`,
+  };
+}
+
 async function handleTrackVisit(event) {
   const { path, visitorKey } = event || {};
   if (!isValidPath(path)) {
@@ -45,11 +66,15 @@ async function handleTrackVisit(event) {
   return ok(null);
 }
 
-async function handleGetStats() {
+async function handleGetStats(event) {
+  const { error, filter } = parseDateFilter(event);
+  if (error) {
+    return error;
+  }
   // 该网关注不支持 postgREST 分组聚合（group 参数 400），
   // 改为拉取原始行后在函数内聚合（demo 量级足够，limit 兜底防止超上限）。
   const rows = await pgRequest(
-    '/page_views?select=path,visitor_key,viewed_at&order=viewed_at.desc&limit=10000',
+    `/page_views?select=path,visitor_key,viewed_at&order=viewed_at.desc&limit=10000${filter}`,
   );
   const byPath = new Map();
   for (const row of rows || []) {
@@ -79,7 +104,7 @@ exports.main = async (event = {}) => {
       case 'trackVisit':
         return await handleTrackVisit(event);
       case 'getStats':
-        return await handleGetStats();
+        return await handleGetStats(event);
       default:
         return fail(1, `未知操作: ${String(action)}`);
     }

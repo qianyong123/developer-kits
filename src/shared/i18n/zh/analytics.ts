@@ -8,4 +8,10 @@ export const analyticsMessages = {
   uvLabel: '访客数 UV',
   lastLabel: '最近访问',
   timeNote: '时间均为北京时间',
+  startLabel: '开始日期',
+  endLabel: '结束日期',
+  query: '查询',
+  clear: '清空',
+  dateRangeHint: '开始和结束日期需同时选择',
+  dateRangeInvalid: '开始日期不能晚于结束日期',
 } as const;
