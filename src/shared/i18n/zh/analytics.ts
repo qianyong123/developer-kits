@@ -7,4 +7,5 @@ export const analyticsMessages = {
   pvLabel: '访问量 PV',
   uvLabel: '访客数 UV',
   lastLabel: '最近访问',
+  timeNote: '时间均为北京时间',
 } as const;

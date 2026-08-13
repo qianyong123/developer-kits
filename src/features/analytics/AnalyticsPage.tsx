@@ -12,7 +12,8 @@ function formatTime(iso?: string): string {
   if (Number.isNaN(date.getTime())) {
     return '--';
   }
-  return date.toLocaleString('zh-CN', { hour12: false });
+  // 统一显示北京时间，避免不同时区浏览器看到不同时间
+  return date.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
 }
 
 export default function AnalyticsPage() {
@@ -42,6 +43,7 @@ export default function AnalyticsPage() {
       <div className={styles.card}>
         <h1>{messages.analytics.title}</h1>
         {error && <p className={styles.error}>{error}</p>}
+        <p className={styles.note}>{messages.analytics.timeNote}</p>
         {stats === null && !error && <p>{messages.analytics.loading}</p>}
         {stats && stats.length === 0 && <p className={styles.empty}>{messages.analytics.empty}</p>}
         {stats && stats.length > 0 && (
