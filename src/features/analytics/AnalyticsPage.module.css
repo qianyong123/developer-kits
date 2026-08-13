@@ -83,6 +83,10 @@
   gap: 10px;
 }
 
+.statCardTotal {
+  grid-column: 1 / -1;
+}
+
 .cardTitle {
   margin: 0;
   font-size: 16px;

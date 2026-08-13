@@ -6,7 +6,7 @@
  * action:
  * - trackVisit { path, visitorKey } -> null（无需登录，匿名访客也统计）
  * - getStats { startDate?, endDate?, dimension? }（公开）
- *     dimension 为 day/week/month/year 时返回按期间聚合 [{ period, pv, uv }]，
+ *     dimension 为 day/week/month/year/total 时返回按期间聚合 [{ period, pv, uv }]，
  *     否则返回按页面聚合 [{ path, pv, uv, lastViewedAt }]
  *
  * 数据：PostgreSQL page_views 表，通过 PG REST + service_role API Key 访问。
@@ -52,13 +52,19 @@ function parseDateFilter(event) {
   };
 }
 
-/** 解析维度参数：day / week / month / year；不传返回 null（按页面聚合）。 */
+/** 解析维度参数：day / week / month / year / total；不传返回 null（按页面聚合）。 */
 function parseDimension(event) {
   const { dimension } = event || {};
   if (dimension === undefined) {
     return { dimension: null };
   }
-  if (dimension !== 'day' && dimension !== 'week' && dimension !== 'month' && dimension !== 'year') {
+  if (
+    dimension !== 'day' &&
+    dimension !== 'week' &&
+    dimension !== 'month' &&
+    dimension !== 'year' &&
+    dimension !== 'total'
+  ) {
     return { error: fail(1, '维度参数不正确') };
   }
   return { dimension };
@@ -100,6 +106,8 @@ function periodKey(viewedAt, dimension) {
       return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}`;
     case 'year':
       return String(date.getUTCFullYear());
+    case 'total':
+      return 'total';
     default:
       return null;
   }

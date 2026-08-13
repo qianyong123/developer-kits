@@ -16,6 +16,7 @@ export const analyticsMessages = {
   weekTab: '周',
   monthTab: '月',
   yearTab: '年',
+  totalLabel: '总数',
   periodLabel: '期间',
   dateRangeHint: '开始和结束日期需同时选择',
   dateRangeInvalid: '开始日期不能晚于结束日期',

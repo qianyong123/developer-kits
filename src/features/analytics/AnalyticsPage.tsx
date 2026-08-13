@@ -8,6 +8,7 @@ import styles from '@/features/analytics/AnalyticsPage.module.css';
 type TrendMap = Record<AnalyticsDimension, TrendStat[] | null>;
 
 const DIMENSIONS: { key: AnalyticsDimension; label: string }[] = [
+  { key: 'total', label: messages.analytics.totalLabel },
   { key: 'day', label: messages.analytics.dayTab },
   { key: 'week', label: messages.analytics.weekTab },
   { key: 'month', label: messages.analytics.monthTab },
@@ -31,7 +32,13 @@ function toBeijingRange(startDate: string, endDate: string): { start: string; en
 }
 
 export default function AnalyticsPage() {
-  const [trends, setTrends] = useState<TrendMap>({ day: null, week: null, month: null, year: null });
+  const [trends, setTrends] = useState<TrendMap>({
+    total: null,
+    day: null,
+    week: null,
+    month: null,
+    year: null,
+  });
   const [error, setError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -49,7 +56,7 @@ export default function AnalyticsPage() {
         if (cancelled) {
           return;
         }
-        const next: TrendMap = { day: null, week: null, month: null, year: null };
+        const next: TrendMap = { total: null, day: null, week: null, month: null, year: null };
         for (const [dim, rows] of results) {
           next[dim] = rows;
         }
@@ -125,8 +132,27 @@ export default function AnalyticsPage() {
             const rows = trends[key];
             const latest = rows && rows.length > 0 ? rows[0] : null;
             const top = rows ? rows.slice(0, 5) : [];
+            const summary = latest ? (
+              <div className={styles.summary}>
+                <div className={styles.summaryItem}>
+                  <span className={styles.summaryValue}>{latest.pv}</span>
+                  <span className={styles.summaryLabel}>{messages.analytics.pvLabel}</span>
+                </div>
+                <div className={styles.summaryItem}>
+                  <span className={styles.summaryValue}>{latest.uv}</span>
+                  <span className={styles.summaryLabel}>{messages.analytics.uvLabel}</span>
+                </div>
+              </div>
+            ) : null;
             return (
-              <section key={key} className={styles.statCard}>
+              <section
+                key={key}
+                className={
+                  key === 'total'
+                    ? `${styles.statCard} ${styles.statCardTotal}`
+                    : styles.statCard
+                }
+              >
                 <h2 className={styles.cardTitle}>{label}</h2>
                 {rows === null ? (
                   <p className={styles.empty}>{messages.analytics.loading}</p>
@@ -134,16 +160,8 @@ export default function AnalyticsPage() {
                   <p className={styles.empty}>{messages.analytics.empty}</p>
                 ) : (
                   <>
-                    <div className={styles.summary}>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryValue}>{latest?.pv}</span>
-                        <span className={styles.summaryLabel}>{messages.analytics.pvLabel}</span>
-                      </div>
-                      <div className={styles.summaryItem}>
-                        <span className={styles.summaryValue}>{latest?.uv}</span>
-                        <span className={styles.summaryLabel}>{messages.analytics.uvLabel}</span>
-                      </div>
-                    </div>
+                    {summary}
+                    {key !== 'total' && (
                     <table className={styles.table}>
                       <thead>
                         <tr>
@@ -162,6 +180,7 @@ export default function AnalyticsPage() {
                         ))}
                       </tbody>
                     </table>
+                    )}
                   </>
                 )}
               </section>

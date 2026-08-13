@@ -1,4 +1,4 @@
-export type AnalyticsDimension = 'day' | 'week' | 'month' | 'year';
+export type AnalyticsDimension = 'day' | 'week' | 'month' | 'year' | 'total';
 
 /** 单页面访问统计（analytics 云函数 getStats 按页面返回的行）。 */
 export interface PageStat {
