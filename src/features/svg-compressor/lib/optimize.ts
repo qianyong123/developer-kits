@@ -29,11 +29,16 @@ export async function optimizeSvg(
   preset: SvgPreset,
   format: SvgOutputFormat,
 ): Promise<OptimizedSvg> {
-  const code = await getPool().run(input, preset);
+  const { text: code, gzipped } = await getPool().run(input, preset, format);
   const previewBlob = new Blob([code], { type: 'image/svg+xml' });
   if (format === 'svgz') {
-    const blob = new Blob([gzipSvgText(code)], { type: 'application/gzip' });
+    const blob = new Blob([gzipped ?? gzipSvgText(code)], { type: 'application/gzip' });
     return { code, blob, previewBlob, size: blob.size, format };
   }
   return { code, blob: previewBlob, previewBlob, size: previewBlob.size, format };
+}
+
+/** 设置变更时取消排队/进行中的优化任务，避免旧代次继续占用 Worker。 */
+export function cancelWorkerPool(): void {
+  pool?.cancelAll();
 }

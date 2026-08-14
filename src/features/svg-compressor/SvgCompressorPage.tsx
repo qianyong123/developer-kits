@@ -14,7 +14,11 @@ import { buildZipBlob } from '@/features/image-compressor/lib/zip';
 import SvgCard from '@/features/svg-compressor/components/SvgCard';
 import SvgCompareDialog from '@/features/svg-compressor/components/SvgCompareDialog';
 import SvgSettingsPanel from '@/features/svg-compressor/components/SvgSettingsPanel';
-import { disposeWorkerPool, optimizeSvg } from '@/features/svg-compressor/lib/optimize';
+import {
+  cancelWorkerPool,
+  disposeWorkerPool,
+  optimizeSvg,
+} from '@/features/svg-compressor/lib/optimize';
 import { svgSettingsKey, useSvgSettingsStore } from '@/features/svg-compressor/stores';
 import {
   analyzeEmbeddedImages,
@@ -73,28 +77,37 @@ export default function SvgCompressorPage() {
     const sizeOk = svgFiles.filter((f) => f.size <= MAX_SVG_FILE_SIZE);
     if (sizeOk.length !== svgFiles.length) notices.push(messages.svg.fileTooLarge);
 
-    const created: SvgItem[] = [];
-    for (const file of sizeOk) {
-      try {
-        const originalCode = await readSvgText(file);
-        const hasTransparency = await imageHasTransparency(
-          new Blob([originalCode], { type: 'image/svg+xml' }),
-        );
-        created.push({
-          id: nextId(),
-          file,
-          originalUrl: URL.createObjectURL(
-            new Blob([originalCode], { type: 'image/svg+xml' }),
-          ),
-          originalSize: file.size,
-          originalCode,
-          hasTransparency,
-          embeddedImages: analyzeEmbeddedImages(originalCode, file.size),
-          status: 'pending',
-        });
-      } catch {
-        notices.push(messages.svg.readFailed(file.name));
-      }
+    // 批量读取并行处理（保持原有顺序），单个文件失败不影响其余文件
+    type BuildOutcome = { ok: true; item: SvgItem } | { ok: false; file: File };
+    const outcomes = await Promise.all(
+      sizeOk.map(async (file): Promise<BuildOutcome> => {
+        try {
+          const originalCode = await readSvgText(file);
+          const originalBlob = new Blob([originalCode], { type: 'image/svg+xml' });
+          const hasTransparency = await imageHasTransparency(originalBlob);
+          return {
+            ok: true,
+            item: {
+              id: nextId(),
+              file,
+              originalUrl: URL.createObjectURL(originalBlob),
+              originalSize: file.size,
+              originalCode,
+              hasTransparency,
+              embeddedImages: analyzeEmbeddedImages(originalCode, file.size),
+              status: 'pending',
+            },
+          };
+        } catch {
+          return { ok: false, file };
+        }
+      }),
+    );
+    const created = outcomes
+      .filter((r): r is Extract<BuildOutcome, { ok: true }> => r.ok)
+      .map((r) => r.item);
+    for (const outcome of outcomes) {
+      if (!outcome.ok) notices.push(messages.svg.readFailed(outcome.file.name));
     }
     return {
       created,
@@ -136,6 +149,7 @@ export default function SvgCompressorPage() {
 
   // 设置变更：全部重新压缩（防抖）；文件名前缀/后缀不影响压缩结果，不触发重跑
   useDebouncedEffect(() => {
+    cancelWorkerPool(); // 取消旧代次任务，避免继续占用 Worker
     recompressAll();
   }, [svgSettingsKey(settings)], 300);
 

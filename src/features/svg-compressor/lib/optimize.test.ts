@@ -49,6 +49,40 @@ describe('SVGO 预设', () => {
   });
 });
 
+describe('SVG 安全净化', () => {
+  const DANGEROUS = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" onload="alert(1)">
+  <script>alert('xss')</script>
+  <a href="https://evil.example.com/x"><rect width="20" height="20"/></a>
+  <image href="http://evil.example.com/x.png" width="10" height="10"/>
+  <rect width="10" height="10" onclick="steal()" style="fill: url(http://evil.example.com/a.png)"/>
+  <style>@import url("https://evil.example.com/style.css"); .a{fill:red}</style>
+</svg>`;
+
+  for (const preset of ['high', 'balanced', 'extreme'] as SvgPreset[]) {
+    it(`${preset}：移除脚本、事件属性、外链与外部样式引用`, () => {
+      const result = optimize(DANGEROUS, buildSvgoConfig(preset));
+      expect(result.data).not.toContain('script');
+      expect(result.data).not.toContain('onload');
+      expect(result.data).not.toContain('onclick');
+      expect(result.data).not.toContain('javascript:');
+      expect(result.data).not.toContain('evil.example.com');
+      expect(result.data).not.toContain('@import');
+      expect(result.data).not.toMatch(/url\(/);
+    });
+  }
+
+  it('保留内部引用（不误伤合法内容）', () => {
+    const safe = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <defs><linearGradient id="g"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient></defs>
+  <rect width="10" height="10" fill="url(#g)"/>
+  <use href="#g"/>
+</svg>`;
+    const result = optimize(safe, buildSvgoConfig('balanced'));
+    expect(result.data).toMatch(/url\(#/);
+    expect(result.data).toMatch(/href="#/);
+  });
+});
+
 describe('SVG 文件处理', () => {
   it('gzip 往返一致', () => {
     const text = '<svg xmlns="http://www.w3.org/2000/svg"/>';
