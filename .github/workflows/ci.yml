@@ -31,7 +31,8 @@ jobs:
         run: npm run test:e2e
 
   deploy:
-    if: github.event_name == 'workflow_dispatch'
+    # 推送 master 或手动触发时自动部署；PR 仅跑测试
+    if: github.event_name != 'pull_request'
     needs: test
     runs-on: ubuntu-latest
     steps:
