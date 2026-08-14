@@ -264,8 +264,8 @@ test('JSON 工具全量测试', { timeout: 240_000 }, async ({ browser }) => {
   await wait(300);
   d = await diffState();
   ok(
-    '对比：数组按索引对比，中间插入显示为修改+新增',
-    d.rows === 2 && (d.stats ?? '').includes('~1 修改') && (d.stats ?? '').includes('+1 新增'),
+    '对比：标量数组中间插入识别为新增（LCS）',
+    d.rows === 1 && (d.stats ?? '').includes('+1 新增') && (d.stats ?? '').includes('~0 修改'),
     JSON.stringify(d),
   );
 

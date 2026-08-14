@@ -297,7 +297,7 @@ export default function JsonToolsPage() {
         ) : (
           <>
             <div className={styles.editor}>
-              <div className={styles.editorLabel}>{messages.json.inputLabel}</div>
+              <div className={styles.editorLabel}>{messages.json.typeInputLabel}</div>
               <JsonEditor
                 value={typeInput}
                 onChange={setTypeInput}
@@ -306,9 +306,7 @@ export default function JsonToolsPage() {
               />
             </div>
             <div className={styles.editor}>
-              <div className={styles.editorLabel}>
-                {messages.json.outputLabel}
-              </div>
+              <div className={styles.editorLabel}>{messages.json.outputTs}</div>
               <div className={styles.output}>
                 {renderOutput()}
               </div>

@@ -11,6 +11,8 @@ export const jsonMessages = {
   startCompare: '开始对比',
   inputLabel: '输入',
   outputLabel: '输出',
+  typeInputLabel: '输入JSON',
+  outputTs: '输出TS',
   beforeLabel: '修改前',
   afterLabel: '修改后',
   inputPlaceholder: '粘贴 JSON 或导入文件…',

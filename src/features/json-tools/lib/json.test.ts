@@ -104,19 +104,49 @@ describe('diffJson', () => {
     expect(changes).toEqual([{ path: '$[2]', type: 'added', after: 3 }]);
   });
 
-  it('数组按同一下标对比：中间插入显示为修改+新增', () => {
+  it('标量数组中间插入识别为新增（LCS）', () => {
     const changes = diffJson([1, 3], [1, 2, 3]);
+    expect(changes).toEqual([{ path: '$[1]', type: 'added', after: 2 }]);
+  });
+
+  it('标量数组重排识别为删除+新增（LCS）', () => {
+    const changes = diffJson([1, 2, 3], [1, 3, 2]);
     expect(changes).toEqual([
-      { path: '$[1]', type: 'changed', before: 3, after: 2 },
-      { path: '$[2]', type: 'added', after: 3 },
+      { path: '$[1]', type: 'removed', before: 2 },
+      { path: '$[2]', type: 'added', after: 2 },
     ]);
   });
 
-  it('数组等长时按索引对比，重排显示为修改', () => {
-    const changes = diffJson([1, 2, 3], [1, 3, 2]);
+  it('对象数组按 id 键匹配，插入不影响后续字段对比', () => {
+    const changes = diffJson(
+      [
+        { id: 1, name: 'a' },
+        { id: 2, name: 'b' },
+      ],
+      [
+        { id: 2, name: 'b2' },
+        { id: 3, name: 'c' },
+      ],
+    );
+    expect(changes).toContainEqual({
+      path: '$[0].name',
+      type: 'changed',
+      before: 'b',
+      after: 'b2',
+    });
+    expect(changes).toContainEqual({ path: '$[1]', type: 'added', after: { id: 3, name: 'c' } });
+    expect(changes).toContainEqual({
+      path: '$[0]',
+      type: 'removed',
+      before: { id: 1, name: 'a' },
+    });
+  });
+
+  it('无公共键的对象数组回退为下标对齐', () => {
+    const changes = diffJson([{ a: 1 }], [{ b: 2 }]);
     expect(changes).toEqual([
-      { path: '$[1]', type: 'changed', before: 2, after: 3 },
-      { path: '$[2]', type: 'changed', before: 3, after: 2 },
+      { path: '$[0].a', type: 'removed', before: 1 },
+      { path: '$[0].b', type: 'added', after: 2 },
     ]);
   });
 
@@ -159,6 +189,34 @@ describe('diffJson', () => {
   it('数组元素数组与对象类型变化记为修改', () => {
     const changes = diffJson([[]], [{}]);
     expect(changes).toEqual([{ path: '$[0]', type: 'changed', before: [], after: {} }]);
+  });
+});
+
+describe('深层嵌套防护', () => {
+  it('解析器返回友好错误而非崩溃', () => {
+    const result = parseJsonStrict('['.repeat(100_000) + ']'.repeat(100_000));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.message).toContain('嵌套过深');
+  });
+
+  it('diffJson 深度超限时整体记为修改', () => {
+    let deep: unknown = 1;
+    for (let i = 0; i < 100_000; i += 1) deep = [deep];
+    const changes = diffJson(deep, deep);
+    expect(changes).toHaveLength(1);
+    expect(changes[0].type).toBe('changed');
+  });
+
+  it('sortObjectKeys 深度超限时原样返回', () => {
+    let deep: unknown = 1;
+    for (let i = 0; i < 100_000; i += 1) deep = { a: deep };
+    expect(sortObjectKeys(deep)).toBe(deep);
+  });
+
+  it('jsonToTsTypes 深度超限时输出兜底类型', () => {
+    let deep: unknown = 1;
+    for (let i = 0; i < 100_000; i += 1) deep = [deep];
+    expect(jsonToTsTypes(deep)).toBe('export type Root = unknown;');
   });
 });
 
