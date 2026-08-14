@@ -51,6 +51,8 @@ function noteText(note?: string): string | null {
       return messages.image.noteKeptOriginal;
     case 'metadata-failed':
       return messages.image.noteMetadataFailed;
+    case 'metadata-skipped':
+      return messages.image.noteMetadataSkipped;
     default:
       return null;
   }

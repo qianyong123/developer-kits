@@ -1,36 +1,22 @@
 import { attachMetadataIfNeeded } from '@/features/image-compressor/lib/metadata';
-import { encodeBitmap, encodeQuantizedPng, loadBitmap, resolveOutputFormat, type OutputFormat } from '@/features/image-compressor/lib/encoders';
+import {
+  encodeBitmap,
+  encodeQuantizedPng,
+  loadBitmap,
+  resolveOutputFormat,
+  type OutputFormat,
+} from '@/features/image-compressor/lib/encoders';
+import { findBestQuality } from '@/features/image-compressor/lib/findQuality';
+import { getImageWorkerPool } from '@/features/image-compressor/lib/imageWorkerPool';
 import { PNG_DITHER, qualityToPngColors } from '@/features/image-compressor/lib/quantize';
+import type { ImageWorkerResult } from '@/features/image-compressor/lib/imageWorkerProtocol';
 import type { CompressResult, CompressSettings } from '@/features/image-compressor/lib/types';
 
-/**
- * 在质量区间内二分，找到“体积不超过目标的最大质量”。
- * evaluate(quality) 返回该质量下的编码体积（字节）。
- */
-export async function findBestQuality(
-  evaluate: (quality: number) => Promise<number>,
-  targetBytes: number,
-  minQuality = 1,
-  maxQuality = 100,
-): Promise<{ quality: number; reachable: boolean }> {
-  let best: number | null = null;
-  let lo = minQuality;
-  let hi = maxQuality;
+export { findBestQuality };
 
-  while (lo <= hi) {
-    const mid = Math.floor((lo + hi) / 2);
-    const size = await evaluate(mid);
-    if (size <= targetBytes) {
-      best = mid;
-      lo = mid + 1;
-    } else {
-      hi = mid - 1;
-    }
-  }
-
-  return best === null
-    ? { quality: minQuality, reachable: false }
-    : { quality: best, reachable: true };
+/** Worker 管线可用性：OffscreenCanvas 存在即优先 Worker，旧浏览器回退主线程。 */
+function workerSupported(): boolean {
+  return typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined';
 }
 
 export async function compressImage(
@@ -41,21 +27,74 @@ export async function compressImage(
   onProgress?.(0.05);
   const bitmap = await loadBitmap(file);
   onProgress?.(0.15);
-  const format = resolveOutputFormat(file, settings.format);
   try {
+    if (workerSupported()) {
+      try {
+        const result = await compressViaWorker(bitmap, file, settings, (p) =>
+          onProgress?.(0.2 + p * 0.8),
+        );
+        onProgress?.(1);
+        return result;
+      } catch {
+        // Worker 创建/执行失败：回退主线程实现（兼容旧浏览器）
+      }
+    }
     const result = await compressOnce(
       bitmap,
       file,
       settings,
       settings.quality,
-      format,
+      resolveOutputFormat(file, settings.format),
       onProgress,
     );
     onProgress?.(1);
     return result;
   } finally {
+    // 传输给 Worker 后 close 是安全 no-op；未传输则释放位图
     bitmap.close();
   }
+}
+
+/** Worker 管线：位图传输进 Worker 压缩，元数据保留仍在主线程完成。 */
+async function compressViaWorker(
+  bitmap: ImageBitmap,
+  file: File,
+  settings: CompressSettings,
+  onProgress?: (p: number) => void,
+): Promise<CompressResult> {
+  const result = await getImageWorkerPool().run(
+    {
+      bitmap,
+      settings: {
+        quality: settings.quality,
+        compressRatio: settings.compressRatio,
+        format: settings.format,
+        maxEdge: settings.maxEdge,
+      },
+      fileType: file.type,
+      fileSize: file.size,
+    },
+    onProgress,
+  );
+  return assembleWorkerResult(result, file, settings);
+}
+
+async function assembleWorkerResult(
+  result: ImageWorkerResult,
+  file: File,
+  settings: CompressSettings,
+): Promise<CompressResult> {
+  if (!result.blob) {
+    // 尽力压缩后仍不小于原图：保留原文件
+    return makeResult(file, result.format, result.qualityUsed, 'kept-original');
+  }
+  const { blob, note: metaNote } = await attachMetadataIfNeeded(
+    result.blob,
+    file,
+    result.format,
+    settings.keepMetadata,
+  );
+  return makeResult(blob, result.format, result.qualityUsed, result.note ?? metaNote);
 }
 
 async function compressOnce(
@@ -84,7 +123,11 @@ async function compressOnce(
     onProgress?.(0.97);
   } else {
     onProgress?.(0.35);
-    encoded = await encodeBitmap(bitmap, { format, quality, maxEdge: settings.maxEdge });
+    encoded = await encodeBitmap(bitmap, {
+      format,
+      quality,
+      maxEdge: settings.maxEdge,
+    });
   }
 
   // 超出目标体积时，自动下调质量到“不超过目标”的最高质量（保真优先：能达标就尽量高）
@@ -102,7 +145,11 @@ async function compressOnce(
             dither: PNG_DITHER,
             adaptive: false,
           })).blob
-        : encodeBitmap(bitmap, { format, quality: q, maxEdge: settings.maxEdge });
+        : encodeBitmap(bitmap, {
+            format,
+            quality: q,
+            maxEdge: settings.maxEdge,
+          });
     };
     const { quality: adjusted, reachable } = await findBestQuality(
       async (q) => (await encodeAt(q)).size,

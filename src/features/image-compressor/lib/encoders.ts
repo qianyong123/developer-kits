@@ -14,7 +14,7 @@ export const EXT: Record<OutputFormat, string> = {
 
 export type FormatOption = OutputFormat | 'original';
 
-export function resolveOutputFormat(file: File, requested: FormatOption): OutputFormat {
+export function resolveOutputFormat(file: Pick<File, 'type'>, requested: FormatOption): OutputFormat {
   if (requested !== 'original') return requested;
   if (file.type === 'image/jpeg') return 'jpeg';
   if (file.type === 'image/webp') return 'webp';
@@ -77,9 +77,9 @@ export async function encodeBitmap(bitmap: ImageBitmap, opts: EncodeOptions): Pr
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  // JPEG 不支持透明通道，填充白色背景
+  // JPEG 不支持透明通道，透明区域填充白色
   if (opts.format === 'jpeg') {
-    ctx.fillStyle = '#0b0d11'; // 与对比预览/缩略图背景一致
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
   }
 

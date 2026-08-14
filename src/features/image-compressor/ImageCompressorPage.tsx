@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { messages } from '@/shared/i18n/zh';
 import { DownloadIcon, RefreshIcon, TrashIcon } from '@/shared/components/Icons';
 import FileDropZone from '@/shared/components/FileDropZone/FileDropZone';
@@ -15,6 +15,7 @@ import ImageCard from '@/features/image-compressor/components/ImageCard';
 import SettingsPanel from '@/features/image-compressor/components/SettingsPanel';
 import { compressImage } from '@/features/image-compressor/lib/compress';
 import { outputFileName } from '@/features/image-compressor/lib/filenames';
+import { disposeImageWorkerPool } from '@/features/image-compressor/lib/imageWorkerPool';
 import {
   DEFAULT_IMAGE_SETTINGS,
   compressSettingsKey,
@@ -39,41 +40,15 @@ const IMAGE_PICK_TYPES = [
   {
     description: messages.image.pickDescription,
     accept: {
-      'image/*': [
-        '.jpg',
-        '.jpeg',
-        '.png',
-        '.webp',
-        '.gif',
-        '.bmp',
-        '.svg',
-        '.avif',
-        '.ico',
-        '.tiff',
-        '.heic',
-        '.heif',
-      ],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/webp': ['.webp'],
     },
   },
 ];
 
 let idCounter = 0;
 const nextId = () => `img-${++idCounter}`;
-
-function formatLabel(file: File): string {
-  const map: Record<string, string> = {
-    'image/gif': 'GIF',
-    'image/bmp': 'BMP',
-    'image/svg+xml': 'SVG',
-    'image/avif': 'AVIF',
-    'image/x-icon': 'ICO',
-    'image/vnd.microsoft.icon': 'ICO',
-    'image/tiff': 'TIFF',
-  };
-  if (map[file.type]) return map[file.type];
-  const ext = file.name.split('.').pop()?.toUpperCase();
-  return ext && ext.length <= 5 ? ext : messages.image.unknownImageName;
-}
 
 function describeError(err: unknown): string {
   const msg = err instanceof Error ? err.message : '';
@@ -92,32 +67,34 @@ export default function ImageCompressorPage() {
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [settingsCollapsed, setSettingsCollapsed] = useState(false);
 
+  // 页面卸载时释放图片压缩 Worker，避免残留线程
+  useEffect(() => () => disposeImageWorkerPool(), []);
+
   const buildItems = useCallback(async (files: File[]) => {
     const notices: string[] = [];
     const supported = files.filter((f) => ALLOWED_TYPES.includes(f.type));
-    const unsupported = files.filter((f) => !ALLOWED_TYPES.includes(f.type));
+    const ignoredCount = files.length - supported.length;
+    if (ignoredCount > 0) notices.push(messages.image.unsupportedIgnored(ignoredCount));
 
     // 支持格式：大小过滤
     const sizeOk = supported.filter((f) => f.size <= MAX_FILE_SIZE);
     if (sizeOk.length !== supported.length) notices.push(messages.image.fileTooLarge);
 
-    // 支持格式：像素尺寸过滤
-    let valid = sizeOk;
-    if (valid.length > 0) {
-      const dimOk: File[] = [];
-      for (const f of sizeOk) {
-        const dims = await readImageDimensions(f);
-        const tooBig =
-          dims &&
-          (dims.width > MAX_IMAGE_SIDE ||
-            dims.height > MAX_IMAGE_SIDE ||
-            dims.width * dims.height > MAX_IMAGE_PIXELS);
-        if (tooBig) continue;
-        dimOk.push(f);
-      }
-      if (dimOk.length !== sizeOk.length) notices.push(messages.image.imageTooLarge);
-      valid = dimOk;
-    }
+    // 支持格式：像素尺寸过滤（并行读取文件头，保持原有顺序）
+    const dimResults = await Promise.all(
+      sizeOk.map(async (f) => ({ file: f, dims: await readImageDimensions(f) })),
+    );
+    const dimOk = dimResults
+      .filter(
+        ({ dims }) =>
+          !dims ||
+          (dims.width <= MAX_IMAGE_SIDE &&
+            dims.height <= MAX_IMAGE_SIDE &&
+            dims.width * dims.height <= MAX_IMAGE_PIXELS),
+      )
+      .map(({ file }) => file);
+    if (dimOk.length !== sizeOk.length) notices.push(messages.image.imageTooLarge);
+    const valid = dimOk;
 
     const validWithAlpha = await Promise.all(
       valid.map(async (file) => ({
@@ -134,17 +111,7 @@ export default function ImageCompressorPage() {
       hasTransparency,
       status: 'pending' as const,
     }));
-    const created: ImageItem[] = [
-      ...validItems,
-      ...unsupported.map((file) => ({
-        id: nextId(),
-        file,
-        originalUrl: URL.createObjectURL(file),
-        originalSize: file.size,
-        status: 'unsupported' as const,
-        error: messages.image.unsupportedFormat(formatLabel(file)),
-      })),
-    ];
+    const created: ImageItem[] = validItems;
     return {
       created,
       compressIds: validItems.map((it) => it.id), // 只压缩新上传的图片
@@ -218,7 +185,6 @@ export default function ImageCompressorPage() {
   const compareItem = items.find((it) => it.id === compareId && it.result) ?? null;
   const resultCount = items.filter((it) => it.result).length;
   const doneItems = items.filter((it) => it.result);
-  const unsupportedCount = items.filter((it) => it.status === 'unsupported').length;
   const totalOriginal = doneItems.reduce((sum, it) => sum + it.originalSize, 0);
   const totalCompressed = doneItems.reduce((sum, it) => sum + (it.result?.size ?? 0), 0);
   const finishedCount = items.filter((it) => it.status === 'done' || it.status === 'error').length;
@@ -246,7 +212,7 @@ export default function ImageCompressorPage() {
           <div className={styles.toolbar}>
             <button
               className="btn"
-              disabled={busy || !items.some((it) => it.status !== 'unsupported')}
+              disabled={busy || items.length === 0}
               onClick={() => void recompressAll()}
             >
               <RefreshIcon size={14} />
@@ -271,7 +237,7 @@ export default function ImageCompressorPage() {
       <div className={styles.columns}>
         <div className={styles.mainCol}>
           <FileDropZone
-            accept=".jpg, .jpeg, .png, .webp, .gif, .bmp, .svg, .avif, .ico, .tiff, .heic, .heif"
+            accept=".jpg, .jpeg, .png, .webp"
             pickTypes={IMAGE_PICK_TYPES}
             dragTitle={messages.image.dropTitle}
             tapTitle={messages.image.tapTitle}
@@ -316,11 +282,6 @@ export default function ImageCompressorPage() {
                     ratioLabel={messages.image.totalRatio}
                     ratioValue={ratioPercent(totalOriginal, totalCompressed)}
                     bad={totalCompressed > totalOriginal}
-                    extra={
-                      unsupportedCount > 0
-                        ? ` · ${messages.image.unsupportedSummary(unsupportedCount)}`
-                        : undefined
-                    }
                   />
                 )}
                 <div className={styles.grid}>

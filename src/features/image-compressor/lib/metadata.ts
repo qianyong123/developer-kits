@@ -6,6 +6,8 @@ export async function attachMetadataIfNeeded(
 ): Promise<{ blob: Blob; note?: string }> {
   if (!keep) return { blob };
   if (format !== 'jpeg') return { blob, note: 'metadata-unsupported' };
+  // 超大文件整文件转 base64 会带来内存峰值，超出上限时跳过保留
+  if (file.size > MAX_METADATA_FILE_SIZE) return { blob, note: 'metadata-skipped' };
 
   try {
     const { default: piexif } = await import('piexifjs');
@@ -29,6 +31,9 @@ export async function attachMetadataIfNeeded(
     return { blob, note: 'metadata-failed' };
   }
 }
+
+/** 保留元数据时允许的最大原图体积：超出时跳过，避免整文件 base64 的内存峰值 */
+const MAX_METADATA_FILE_SIZE = 20 * 1024 * 1024;
 
 /** 只读文件头（前 1MB）判断是否含 EXIF APP1 标记（"Exif\0\0"），避免误报解析失败。 */
 async function hasExifMarker(file: File): Promise<boolean> {
