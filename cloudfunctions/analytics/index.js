@@ -7,6 +7,8 @@
  * - trackVisit { path, visitorKey } -> null（无需登录，匿名访客也统计）
  * - getDashboard { startDate?, endDate? }（公开）
  *     一次快照返回 total/day/week/month/year 五个维度，保证总数 >= 各维度
+ * - getVisitors { startDate?, endDate? }（公开）
+ *     按访客聚合 [{ visitor_key, pv, active_days, last_viewed }]，按最近访问时间倒序
  * - getStats { startDate?, endDate?, dimension? }（公开）
  *     dimension 为 day/week/month/year/total 时返回按期间聚合 [{ period, pv, uv }]，
  *     否则返回按页面聚合 [{ path, pv, uv, lastViewedAt }]
@@ -205,6 +207,48 @@ async function handleGetDashboard(event) {
   });
 }
 
+/** 按访客聚合原始行，返回按最近访问时间倒序的 [{ visitor_key, pv, active_days, last_viewed }]。 */
+async function handleGetVisitors(event) {
+  const { error: filterError, filter } = parseDateFilter(event);
+  if (filterError) {
+    return filterError;
+  }
+  const rows = await pgRequest(
+    `/page_views?select=visitor_key,viewed_at&order=viewed_at.desc&limit=10000${filter}`,
+  );
+  const byVisitor = new Map();
+  for (const row of rows || []) {
+    if (!row.visitor_key) {
+      continue;
+    }
+    const entry = byVisitor.get(row.visitor_key) || {
+      visitor_key: row.visitor_key,
+      pv: 0,
+      days: new Set(),
+      last_viewed: row.viewed_at,
+    };
+    entry.pv += 1;
+    const dayKey = periodKey(row.viewed_at, 'day');
+    if (dayKey) {
+      entry.days.add(dayKey);
+    }
+    if (!entry.last_viewed || row.viewed_at > entry.last_viewed) {
+      entry.last_viewed = row.viewed_at;
+    }
+    byVisitor.set(row.visitor_key, entry);
+  }
+  return ok(
+    [...byVisitor.values()]
+      .map(({ days, ...rest }) => ({ ...rest, active_days: days.size }))
+      .sort((a, b) => {
+        if (a.last_viewed !== b.last_viewed) {
+          return a.last_viewed < b.last_viewed ? 1 : -1;
+        }
+        return b.pv - a.pv;
+      }),
+  );
+}
+
 exports.main = async (event = {}) => {
   const { action } = event;
   try {
@@ -213,6 +257,8 @@ exports.main = async (event = {}) => {
         return await handleTrackVisit(event);
       case 'getDashboard':
         return await handleGetDashboard(event);
+      case 'getVisitors':
+        return await handleGetVisitors(event);
       case 'getStats':
         return await handleGetStats(event);
       default:

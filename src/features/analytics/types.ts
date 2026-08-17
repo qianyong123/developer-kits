@@ -15,6 +15,14 @@ export interface TrendStat {
   uv: number;
 }
 
+/** 按访客聚合的访问统计（getVisitors 返回的行）。 */
+export interface VisitorStat {
+  visitor_key: string;
+  pv: number;
+  active_days: number;
+  last_viewed: string;
+}
+
 /** 统计看板：一次快照返回的五个维度。 */
 export interface DashboardStats {
   total: TrendStat[];
